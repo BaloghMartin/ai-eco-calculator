@@ -709,6 +709,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     let hasEditedPrompt = false; 
 
+   const defaultPrompt = "Mi a valódi ára egy összefoglaló generálásának erről a Mesterséges Intelligenciáról és a klímaválságról szóló cikkről?";
+
+   aiPrompt.addEventListener('focus', () => {
+       if (aiPrompt.value === defaultPrompt) {
+           aiPrompt.value = '';
+           charCountDisplay.textContent = '0';
+       }
+   });
+
     // Segédfüggvény a szál "altatására" (delay) az animációkhoz
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
