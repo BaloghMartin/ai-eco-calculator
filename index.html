@@ -226,11 +226,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         margin-bottom: 1rem;
     }
 
-    .radio-label { flex: 1; cursor: pointer; }
+    /* A min-width: 0 kritikus, ez akadályozza meg a flex itemek túlcsordulását mobilon */
+    .radio-label { flex: 1; cursor: pointer; min-width: 0; }
     .radio-label input[type="radio"] { display: none; }
 
     .radio-btn {
-        padding: 0.75rem 1rem;
+        padding: 0.75rem 0.25rem; /* Kevesebb oldalsó padding a biztos kiférésért */
         border-radius: 4px;
         font-size: 0.9rem;
         font-weight: 600;
@@ -239,6 +240,17 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         color: var(--text-muted);
         transition: all 0.2s ease;
         text-align: center;
+        display: flex;
+        flex-direction: column; /* Mostantól direkt egymás alatt van az emoji és a szöveg */
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        height: 100%;
+    }
+
+    .radio-btn .emoji {
+        font-size: 1.25rem;
+        line-height: 1;
     }
 
     /* Kijelölt állapot: Narancs szöveg és keret, halvány narancs háttér */
@@ -400,6 +412,30 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         border-top: 1px solid var(--border-color);
         line-height: 1.4;
     }
+
+    /* ==========================================================================
+       MOBIL OPTIMALIZÁCIÓ (MEDIA QUERIES)
+       Ezek a szabályok lépnek érvénybe 480px képernyőszélesség alatt (pl. iPhone)
+       ========================================================================== */
+    @media (max-width: 480px) {
+        body { padding: 1rem 0.5rem; }
+        .calc-content { padding: 1.25rem; }
+        
+        .radio-btn {
+            font-size: 0.75rem; /* Kisebb betűméret, hogy a hosszú szavak kiférjenek */
+            padding: 0.5rem 0.1rem; /* Margó drasztikus csökkentése */
+        }
+        .radio-btn .emoji {
+            font-size: 1.1rem;
+        }
+        .model-selector {
+            gap: 0.35rem; /* Kisebb hely a gombok között */
+        }
+        
+        .app-title { font-size: 1.5rem; }
+        .output-focus #totEnergy { font-size: 2.8rem; }
+        .metrics-grid { grid-template-columns: 1fr 1fr; } /* Mobilon szigorúan 2 oszlopos kártyarács */
+    }
 </style>
 </head>
 <body>
@@ -434,19 +470,19 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </div>
 
-        <!-- Modellválasztó rádiógombok -->
+        <!-- Modellválasztó rádiógombok (A HTML struktúra módosult a Flexbox layout miatt) -->
         <div class="model-selector">
             <label class="radio-label">
                 <input type="radio" name="aiModel" value="light">
-                <div class="radio-btn">⚡ Könnyű</div>
+                <div class="radio-btn"><span class="emoji">⚡</span><span class="label">Könnyű</span></div>
             </label>
             <label class="radio-label">
                 <input type="radio" name="aiModel" value="medium">
-                <div class="radio-btn">🧠 Közepes</div>
+                <div class="radio-btn"><span class="emoji">🧠</span><span class="label">Közepes</span></div>
             </label>
             <label class="radio-label">
                 <input type="radio" name="aiModel" value="thinking" checked>
-                <div class="radio-btn">🤔 Gondolkodó</div>
+                <div class="radio-btn"><span class="emoji">🤔</span><span class="label">Gondolkodó</span></div>
             </label>
         </div>
 
@@ -835,7 +871,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     function createInfographicCanvas() {
         // 1. Adatok begyűjtése a HTML felületről
         const promptText = aiPrompt.value;
-        let modelName = document.querySelector('input[name="aiModel"]:checked').nextElementSibling.textContent.trim();
+        // Kiemeljük a szöveget (pl. "Gondolkodó") az új span alapú HTML struktúrából
+        let modelName = document.querySelector('input[name="aiModel"]:checked').nextElementSibling.querySelector('.label').textContent.trim();
         modelName = modelName.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
         const outTokens = document.getElementById('outTokens').innerText;
         const totEnergy = document.getElementById('totEnergy').innerText;
