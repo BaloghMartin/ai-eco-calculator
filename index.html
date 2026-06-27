@@ -1048,6 +1048,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Segédfüggvény a JavaScript szál aszinkron "altatására"
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+    // ÚJ: Biztonságos lefelé görgető funkció (Mobil "yo-yo" ugrálás megelőzésére)
+    function smoothScrollDown() {
+        // Kiszámolja a dokumentum teljes, aktuális magasságát
+        const targetY = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        // Csak lefelé, abszolút pozícióba görget, elkerülve az elem-szintű ugrálást
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+
     // Terminál-szerű gépelési effektus
     async function typeWriter(element, text, minDelay = 20, maxDelay = 60) {
         element.textContent = ''; 
@@ -1121,8 +1129,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         // Megjelenítjük a konténert
         resultsSection.style.display = 'block';
         
-        // AUTO-SCROLL: Az animáció kezdetén a kalkulátor infót (oldal alja) a képernyő aljához igazítjuk
-        document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        // AUTO-SCROLL: Az animáció kezdetén biztonságosan lefelé görgetünk
+        smoothScrollDown();
 
         let minSpeed = 5; let maxSpeed = 15;
         let showThinkingState = (selectedModel === 'thinking' || selectedMedia === 'video' || selectedContext !== 'none');
@@ -1161,8 +1169,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 thinkContent.appendChild(lineEl);
                 lineEl.classList.add('typing-cursor');
                 
-                // AUTO-SCROLL: A terminál gépelése közben is végig lenn tartjuk a fókuszt
-                document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                // AUTO-SCROLL: A terminál gépelése közben is finoman görgetünk lefelé
+                smoothScrollDown();
                 
                 await typeWriter(lineEl, textLine, 5, 20); 
                 await sleep(300); 
@@ -1183,8 +1191,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     parentBox.style.display = ''; 
                     parentBox.classList.add('pop-in');
                     
-                    // AUTO-SCROLL: Minden új doboz felugrásakor lejjebb toljuk az oldalt
-                    document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    // AUTO-SCROLL: Minden új doboz felugrásakor lejjebb toljuk az oldalt (csak lefelé)
+                    smoothScrollDown();
                     
                     await sleep(40); 
                 }
@@ -1207,7 +1215,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         
         // Végső igazítás, hogy a social média gombok is tökéletesen látszódjanak
         setTimeout(() => {
-            document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+            smoothScrollDown();
         }, 100);
     });
 
