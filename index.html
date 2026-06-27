@@ -120,6 +120,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Lágy árnyék a térbeliségért */
         border: 1px solid var(--border-color);
         overflow: hidden; /* Biztosítja, hogy a belső tartalmak ne lógjanak le a sarkoknál */
+        transition: opacity 0.3s ease; /* Finom áttűnés a lezáráskor */
     }
 
     /* Márka fejléc (Fekete sáv narancs logóval) */
@@ -177,7 +178,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         border: 1px solid var(--border-color);
         border-radius: 4px;
         padding: 1rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s ease; /* Bővítve opacity átmenettel */
         position: relative;
         margin-bottom: 1.5rem;
     }
@@ -260,6 +261,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         transition: all 0.2s;
     }
     .random-btn:hover { background-color: #EAEAEA; border-color: #B0B0B0; }
+    .random-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
     /* ==========================================================================
        5. REJTETT RÁDIÓGOMBOK (Model & Media választók)
@@ -271,6 +273,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         width: 100%;
         gap: 0.5rem;
         margin-bottom: 1.5rem;
+        transition: opacity 0.2s ease;
     }
 
     .radio-label { flex: 1; cursor: pointer; min-width: 0; }
@@ -871,6 +874,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Nincs API hívás, a környezeti terhelést determinisztikus matekkal becsüljük.
     // ==========================================================================
 
+    // GLOBÁLIS ÁLLAPOT (State Snapshot) AZ EXPORTHOZ
+    // Ide mentjük a legutolsó sikeres számítás eredményeit, hogy az exportáláskor
+    // garantáltan a pontos, fagyasztott adatokat használjuk (függetlenül attól, 
+    // ha a user közben átírná a promptot). JAVÍTÁS #2.
+    let lastCalculatedState = null;
+
     // Előre definiált bemutató szcenáriók (A dobókocka gomb ezt az array-t hívja be)
     const PRESET_SCENARIOS = [
         { model: "light", media: "none", context: "none", prompt: "Hogyan kell szakszerűen eltávolítani egy beszáradt vörösborfoltot a fehér ingemről?" },
@@ -1009,7 +1018,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // ==========================================================================
     // 2. FELHASZNÁLÓI FELÜLET (UI) DOM ELEMEK BEKÖTÉSE ÉS ESEMÉNYKEZELÉS
     // ==========================================================================
+    const calculatorApp = document.getElementById('calculatorApp');
     const aiPrompt = document.getElementById('aiPrompt');
+    const chatInputWrapper = document.querySelector('.chat-input-wrapper');
     const charCountDisplay = document.getElementById('charCount');
     const calcBtn = document.getElementById('calcBtn');
     const randomBtn = document.getElementById('randomBtn');
@@ -1173,12 +1184,45 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         // UI elemek lezárása az animáció idejére (ne tudjon belekattintani közben)
         calcBtn.disabled = true;
         randomBtn.disabled = true;
+        
+        // JAVÍTÁS 1: A prompt beviteli mező és a wrapper stílusos zárolása animáció alatt
+        aiPrompt.disabled = true;
+        chatInputWrapper.style.opacity = '0.6';
+        chatInputWrapper.style.pointerEvents = 'none';
+
         modelSelectorContainer.classList.add('disabled');
         mediaSelectorContainer.classList.add('disabled');
         contextSelectorContainer.classList.add('disabled');
         radioInputs.forEach(radio => radio.disabled = true);
         mediaInputs.forEach(radio => radio.disabled = true);
         contextInputs.forEach(radio => radio.disabled = true);
+
+        // JAVÍTÁS 2: Eredmény-állapot fagyasztása (State Snapshot)
+        // Kinyerjük a modell nevét a UI-ból, majd letisztítjuk az emojikat róla
+        let modelNameLabel = document.querySelector('input[name="aiModel"]:checked').nextElementSibling.querySelector('.label').textContent.trim();
+        modelNameLabel = modelNameLabel.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
+        
+        // Elmentjük a nyers, kidekódolt állapotot a Canvas renderelőnek, 
+        // így bármit csinál a user később, az export a pontos pillanatot örökíti meg.
+        lastCalculatedState = {
+            promptText: text,
+            modelName: modelNameLabel,
+            outTokens: `~${impact.finalOutputTokens.toLocaleString('hu-HU')}`,
+            totEnergyRaw: impact.totalEnergyWh,
+            totEnergyStr: formatHu(impact.totalEnergyWh),
+            totEnergyUnit: "Wh",
+            mediaType: selectedMedia,
+            contextType: selectedContext,
+            // Előre összeállítjuk a metrika kártyák nyers és megjelenítendő értékeit
+            metrics: [
+                { icon: '☁️', title: 'Szerver Hűtés', val: formatHu(impact.datacenterWaterML) + ' ml', rawVal: impact.datacenterWaterML, unit: 'ml', bg: '#F4FAFF', border: '#E1F0FA' },
+                { icon: '📱', title: 'Telefon Töltés', val: formatHu(equivalents.phoneChargePct) + '%', rawVal: equivalents.phoneChargePct, unit: '%' },
+                { icon: '💡', title: 'LED Izzó', val: formatHu(equivalents.ledMinutes) + ' perc', rawVal: equivalents.ledMinutes, unit: 'perc' },
+                { icon: '💧', title: 'Víztisztítás', val: formatHu(equivalents.waterLiters) + ' liter', rawVal: equivalents.waterLiters, unit: 'liter' },
+                { icon: '📺', title: 'HD Stream', val: formatHu(equivalents.streamMinutes) + ' perc', rawVal: equivalents.streamMinutes, unit: 'perc' },
+                { icon: '☕', title: 'Vízforralás', val: formatHu(equivalents.teaCups) + ' bögre', rawVal: equivalents.teaCups, unit: 'bögre' }
+            ]
+        };
 
         // A HTMl 'data-text' attribútumok feltöltése formázott értékekkel.
         // Innen fogja felolvasni az írógép effektus karakterről karakterre.
@@ -1281,6 +1325,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         // Visszaengedjük a UI vezérlőket a felhasználónak
         calcBtn.disabled = false;
         randomBtn.disabled = false;
+        
+        // JAVÍTÁS 1: A prompt mező interaktivitásának pontos visszaállítása
+        aiPrompt.disabled = false;
+        chatInputWrapper.style.opacity = '';
+        chatInputWrapper.style.pointerEvents = '';
+        
         modelSelectorContainer.classList.remove('disabled');
         mediaSelectorContainer.classList.remove('disabled');
         contextSelectorContainer.classList.remove('disabled');
@@ -1350,58 +1400,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /**
-     * Segédfüggvény: Magyarul formázott szöveg (pl. "1 234,56") nyers Float számmá alakítása a Canvas animációhoz.
-     */
-    function parseHuToFloat(str) {
-        const numStr = str.replace(/[^\d,-]/g, '').replace(',', '.');
-        return parseFloat(numStr) || 0;
-    }
-
-    /**
-     * Adatgyűjtő függvény: Összeszedi a kiszámolt értékeket a DOM-ból a statikus képhez és a GIF-hez.
+     * Adatgyűjtő függvény: JAVÍTÁS 2: A DOM helyett KIZÁRÓLAG a fagyasztott State Snapshotból építkezik.
+     * Így garantálja, hogy ha a user közben módosít, az export akkor is a kirenderelt adatokat tartalmazza.
      */
     function getInfographicData() {
-        const promptText = aiPrompt.value;
-        // Kiszűri a modellszövegből a felesleges karaktereket
-        let modelName = document.querySelector('input[name="aiModel"]:checked').nextElementSibling.querySelector('.label').textContent.trim();
-        modelName = modelName.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
-        const outTokens = document.getElementById('outTokens').innerText;
+        if (!lastCalculatedState) return null; // Biztonsági őr, ha nem futott még le számítás
         
-        const totEnergyStr = document.getElementById('totEnergy').innerText;
-        const totEnergyRaw = parseHuToFloat(totEnergyStr);
-        const totEnergyUnit = totEnergyStr.split(' ').pop(); 
+        // Kiolvassuk az értékeket a fagyasztott memóriából
+        const { promptText, modelName, outTokens, totEnergyStr, totEnergyRaw, totEnergyUnit, mediaType, contextType, metrics } = lastCalculatedState;
         
         // Média és kontextus metaadatok összefűzése a fekete kapszulába
-        const selectedMediaValue = document.querySelector('input[name="mediaType"]:checked').value;
         let mediaText = '';
-        if (selectedMediaValue === 'image') mediaText = ' | KIMENET: +1 KÉP';
-        else if (selectedMediaValue === 'podcast') mediaText = ' | KIMENET: +1P PODCAST';
-        else if (selectedMediaValue === 'video') mediaText = ' | KIMENET: +5MP VIDEÓ';
+        if (mediaType === 'image') mediaText = ' | KIMENET: +1 KÉP';
+        else if (mediaType === 'podcast') mediaText = ' | KIMENET: +1P PODCAST';
+        else if (mediaType === 'video') mediaText = ' | KIMENET: +5MP VIDEÓ';
 
-        const selectedContextValue = document.querySelector('input[name="contextType"]:checked').value;
         let contextText = '';
-        if (selectedContextValue === 'article') contextText = ' | BEMENET: CIKK';
-        else if (selectedContextValue === 'pdf_small') contextText = ' | BEMENET: KIS PDF';
-        else if (selectedContextValue === 'pdf_large') contextText = ' | BEMENET: NAGY PDF';
-        else if (selectedContextValue === 'book') contextText = ' | BEMENET: KÖNYV';
+        if (contextType === 'article') contextText = ' | BEMENET: CIKK';
+        else if (contextType === 'pdf_small') contextText = ' | BEMENET: KIS PDF';
+        else if (contextType === 'pdf_large') contextText = ' | BEMENET: NAGY PDF';
+        else if (contextType === 'book') contextText = ' | BEMENET: KÖNYV';
 
         const infoText = `MODELL: ${modelName.toUpperCase()}${mediaText}${contextText}   |   KIMENET: ${outTokens} TOKEN`;
-
-        // Alsó 6 metrikakártya adatainak kigyűjtése
-        const metrics = [
-            { icon: '☁️', title: 'Szerver Hűtés', val: document.getElementById('metricCoolingWater').innerText + ' ml', bg: '#F4FAFF', border: '#E1F0FA' },
-            { icon: '📱', title: 'Telefon Töltés', val: document.getElementById('metricPhone').innerText + '%' },
-            { icon: '💡', title: 'LED Izzó', val: document.getElementById('metricLed').innerText + ' perc' },
-            { icon: '💧', title: 'Víztisztítás', val: document.getElementById('metricWater').innerText + ' liter' },
-            { icon: '📺', title: 'HD Stream', val: document.getElementById('metricStream').innerText + ' perc' },
-            { icon: '☕', title: 'Vízforralás', val: document.getElementById('metricTea').innerText + ' bögre' }
-        ];
-
-        // Metrikák numerikus és szöveges elemeinek bontása az animált pörgetés (Cubic Ease-Out) matematikai számolásához
-        metrics.forEach(m => {
-            m.rawVal = parseHuToFloat(m.val);
-            m.unit = m.val.includes('%') ? '%' : m.val.split(' ').slice(1).join(' ');
-        });
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -1414,7 +1434,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const height = promptBoxHeight + 1150; 
 
         return {
-            promptText, outTokens, totEnergyStr, totEnergyRaw, totEnergyUnit, infoText, metrics,
+            promptText, outTokens, totEnergyStr: totEnergyStr + " " + totEnergyUnit, totEnergyRaw, totEnergyUnit, infoText, metrics,
             width, height, promptBoxHeight, wrappedPromptLines
         };
     }
@@ -1425,6 +1445,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
      * Ez a függvény a GIF export szíve: mikroszekundum pontosággal vezérli, hol tart az animáció.
      */
     function renderInfographicFrame(ctx, data, t) {
+        if (!data) return; // Ha valamiért nincs adat, biztonsági kilépés
+
         const { width, height, promptBoxHeight, wrappedPromptLines, promptText, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics } = data;
 
         // --- ALAP (0-tól végig): Sötét háttér, Fehér főkártya, Fejléc, Idézetdoboz és Lábléc ---
@@ -1615,7 +1637,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 let displayVal = m.val; 
                 if (t <= endTime) {
                     let currentVal = m.rawVal * easeOutCubic(progress);
-                    if(m.val.includes('%')) {
+                    if(m.unit === '%') {
                         displayVal = Math.floor(currentVal) + "%"; // Százalék esetén egész szám (tizedes nélkül)
                     } else {
                         // Közbülső tizedesjegyek fixálása 2 tizedesre, hogy ne ugráljon vadul a pixelszélesség pörgés közben
@@ -1650,6 +1672,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
      */
     function createInfographicCanvas() {
         const data = getInfographicData();
+        if(!data) return null; // Biztonsági őr
         const canvas = document.createElement('canvas');
         canvas.width = data.width;
         canvas.height = data.height;
@@ -1695,6 +1718,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         return new Promise(async (resolve, reject) => {
             try {
                 const data = getInfographicData();
+                if (!data) return reject(new Error("Nincsenek elérhető export adatok!"));
+                
                 const workerUrl = await getGifWorkerUrl();
                 
                 // --- KÉPMÉRET ÉS ÉLESSÉG OPTIMALIZÁCIÓ (DOWNSCALING) ---
@@ -1778,14 +1803,20 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     downloadBtn.addEventListener('click', async () => {
         const originalContent = downloadBtn.innerHTML;
         downloadBtn.disabled = true; // Duplakattintás védelem
+        
+        // JAVÍTÁS 3: Teljes widget felület lezárása és halványítása generálás alatt
+        calculatorApp.style.pointerEvents = 'none';
+        calculatorApp.style.opacity = '0.7';
 
         try {
             if (currentExportFormat === 'png') {
                 downloadBtn.innerHTML = 'Készítés...'; 
                 await sleep(50); // Apró UI altatás, hogy a felirat meg tudjon jelenni a gombon a befagyás előtt
                 const canvas = createInfographicCanvas();
-                const imageURL = canvas.toDataURL('image/png');
-                triggerDownload(imageURL, 'mikhk-mi-hatas.png');
+                if(canvas) {
+                    const imageURL = canvas.toDataURL('image/png');
+                    triggerDownload(imageURL, 'mikhk-mi-hatas.png');
+                }
             } 
             else if (currentExportFormat === 'gif') {
                 downloadBtn.innerHTML = 'Előkészítés...';
@@ -1802,6 +1833,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         } finally {
             downloadBtn.innerHTML = originalContent; 
             downloadBtn.disabled = false;
+            
+            // JAVÍTÁS 3: Teljes widget felület interaktivitásának visszaadása
+            calculatorApp.style.pointerEvents = '';
+            calculatorApp.style.opacity = '';
         }
     });
 
@@ -1811,6 +1846,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     shareBtn.addEventListener('click', async () => {
         const originalContent = shareBtn.innerHTML;
         shareBtn.disabled = true;
+        
+        // JAVÍTÁS 3: Teljes widget felület lezárása és halványítása generálás alatt
+        calculatorApp.style.pointerEvents = 'none';
+        calculatorApp.style.opacity = '0.7';
 
         try {
             let fileBlob;
@@ -1822,6 +1861,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 shareBtn.innerHTML = 'Előkészítés...';
                 await sleep(50);
                 const canvas = createInfographicCanvas();
+                if(!canvas) throw new Error("Canvas készítése sikertelen.");
                 fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 filename = 'mikhk-mi-hatas.png';
                 mimeType = 'image/png';
@@ -1869,6 +1909,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         } finally {
             shareBtn.innerHTML = originalContent;
             shareBtn.disabled = false;
+            
+            // JAVÍTÁS 3: Teljes widget felület interaktivitásának visszaadása
+            calculatorApp.style.pointerEvents = '';
+            calculatorApp.style.opacity = '';
         }
     });
 
