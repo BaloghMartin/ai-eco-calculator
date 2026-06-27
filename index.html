@@ -55,8 +55,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
      water per Watt-hour consumed to cool the GPUs.
 
 5. Real-World Physical Equivalents
-   - Smartphone: A standard 15Wh battery requires ~20Wh from the wall due 
-     to 75% AC-to-DC charging efficiency and heat loss.
+   - Smartphone: A modern 17.5Wh battery requires ~22.5Wh from the wall due 
+     to AC-to-DC charging efficiency and heat loss.
    - Tap Water: Municipal water treatment averages ~1.5 kWh per 1000 gallons, 
      which converts to 0.4 Wh per liter of clean drinking water.
 ================================================================================
@@ -68,10 +68,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     /* ==========================================================================
        1. CSS VÁLTOZÓK ÉS ALAPBEÁLLÍTÁSOK (Márkaarculat)
        Ide gyűjtöttük a színeket, így később egy helyen könnyen módosítható 
-       az egész applikáció színvilága (pl. dark mode esetén).
+       az egész applikáció színvilága (pl. dark mode implementálása esetén).
        ========================================================================== */
     :root {
-        --brand-orange: #EA4C15;         /* Fő márka szín (Gombok, ikonok) */
+        --brand-orange: #EA4C15;         /* Fő márka szín (Gombok, ikonok, kiemelések) */
         --brand-orange-hover: #D13E0E;   /* Fő márka szín hover állapota */
         --brand-black: #1E1E1E;          /* Fejléc és sötét elemek háttere */
         --brand-dark-gray: #333333;      /* Sötétszürke szövegek */
@@ -86,11 +86,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         --accent-bg: #FEF3F0;            /* Kijelölt állapot háttere (Narancs halványan) */
     }
 
+    /* Alapértelmezett böngésző reset és dobozmodell */
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
         font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-        background-color: #F0F0F0;
+        background-color: #F0F0F0; /* Diszkrét háttér, ami kiemeli a widgetet */
         color: var(--text-main);
         line-height: 1.6;
         -webkit-font-smoothing: antialiased;
@@ -98,19 +99,20 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /* ==========================================================================
-       2. FŐ KONTÉNER (A widget tartóeleme)
-       Korlátozott szélességű doboz, középre igazítva, diszkrét árnyékkal.
+       2. FŐ KONTÉNER ÉS TIPOGRÁFIA
+       A teljes widgetet egy korlátozott szélességű, letisztult "kártyába" zárjuk.
        ========================================================================== */
     .env-calculator {
         max-width: 740px;
         margin: 0 auto;
         background: var(--bg-color);
         border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Lágy árnyék a kiemeléshez */
         border: 1px solid var(--border-color);
-        overflow: hidden; /* Ne lógjon ki semmi a kerekített sarkok mögül */
+        overflow: hidden; /* Biztosítja, hogy a tartalom ne lógjon le a kerekített sarkokról */
     }
 
+    /* Márka fejléc stílusai */
     .brand-header {
         background-color: var(--brand-black);
         padding: 1rem 1.5rem;
@@ -143,9 +145,19 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .app-title { font-size: 1.8rem; font-weight: 800; text-align: left; margin-bottom: 0.75rem; color: var(--text-main); line-height: 1.2; }
     .app-description { font-size: 1rem; color: var(--text-muted); text-align: left; margin-bottom: 2rem; font-weight: 400; }
 
+    /* Szekció címkék (1. Bemenet, 2. Kimenet) a vizuális hierarchiához */
+    .section-label {
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
     /* ==========================================================================
-       3. PROMPT BEVITELI MEZŐ (Textarea és az alsó gombok)
-       Fókusz esetén fénylő narancssárga keretet kap a márkaazonosságért.
+       3. PROMPT BEVITELI MEZŐ ÉS CSATOLMÁNY (BEMENET SZEKCIÓ)
+       Fókusz esetén a konténer fénylő narancssárga keretet kap.
        ========================================================================== */
     .chat-input-wrapper {
         background: var(--input-bg);
@@ -157,6 +169,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         margin-bottom: 1.5rem;
     }
 
+    /* Vizuális fókuszálás trükk: A div kapja meg az aktív keretet a textarea helyett */
     .chat-input-wrapper:focus-within {
         border-color: var(--brand-orange);
         box-shadow: 0 0 0 2px rgba(234, 76, 21, 0.1);
@@ -171,8 +184,25 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         font-size: 1.05rem;
         color: var(--text-main);
         resize: vertical;
-        outline: none; /* A wrapper kapja a vizuális fókuszt, nem a natív elem */
+        outline: none; /* Kikapcsoljuk a natív böngészős fókuszt */
     }
+
+    /* A szövegdobozba ágyazott "csatolmány" (Háttéranyag RAG) stílusai */
+    .context-in-input {
+        margin: 0.5rem 0 0 0;
+        border: none;
+        border-top: 1px dashed var(--border-color);
+        background: transparent;
+        border-radius: 0;
+    }
+    .context-in-input .media-summary {
+        padding: 0.75rem 0.5rem 0.25rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    .context-in-input .media-details-content {
+        padding: 0.5rem 0.5rem 0.25rem 0.5rem;
+    }
+    .context-in-input .media-card { background: #FFFFFF; } /* Hogy kitűnjön a szürke beviteli háttérből */
 
     .input-bottom-row {
         display: flex;
@@ -185,6 +215,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     .char-count { font-size: 0.8rem; color: #888; font-weight: bold; }
 
+    /* Fő számítás gomb stílusai */
     button.send-btn {
         background-color: var(--brand-orange);
         color: white;
@@ -226,7 +257,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     /* ==========================================================================
        4. MODELL, MÉDIA ÉS KONTEXTUS VÁLASZTÓK (Rádiógombok elrejtése)
        A natív HTML rádiógombokat elrejtjük (display: none), és a <label> taget
-       formázzuk kattintható dobozzá. Így érhető el a modern UI.
+       formázzuk kattintható dobozzá. Ez modern, app-szerű UI-t eredményez.
        ========================================================================== */
     .model-selector {
         display: flex;
@@ -265,10 +296,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
     .radio-label:hover .radio-btn:not(.checked) { border-color: #B0B0B0; color: var(--text-main); }
     
-    /* Számítás alatt a UI interakciók tiltása */
+    /* Számítás alatt a UI interakciók ideiglenes tiltása */
     .model-selector.disabled { opacity: 0.6; pointer-events: none; }
 
-    /* --- Lenyitható (Accordion) panel stílusok a Média és Kontextus opcióknak --- */
+    /* Lenyitható (Accordion) HTML5 details panel stílusok a Multimédia opcióknak */
     .media-details {
         background: var(--input-bg);
         border: 1px solid var(--border-color);
@@ -277,7 +308,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         transition: all 0.2s ease;
     }
 
-    /* A lenyíló panel fejléce */
     .media-summary {
         padding: 0.85rem 1rem;
         cursor: pointer;
@@ -296,21 +326,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .media-summary:hover { background-color: #EFEFEF; }
 
     /* Amikor a panel nyitva van (HTML5 details open attribútum) */
-    .media-details[open] {
-        border-color: #B0B0B0;
-        background: var(--bg-color);
-    }
-    .media-details[open] .media-summary {
-        border-bottom: 1px dashed var(--border-color);
-        margin-bottom: 1rem;
-        background: transparent;
-    }
-    /* Vizuális nyíl forgatása nyitott állapotban */
+    .media-details[open] { border-color: #B0B0B0; background: var(--bg-color); }
+    .media-details[open] .media-summary { border-bottom: 1px dashed var(--border-color); margin-bottom: 1rem; background: transparent; }
     .media-details[open] .chevron { transform: rotate(180deg); }
 
     .chevron { width: 18px; height: 18px; transition: transform 0.2s ease; color: var(--text-muted); stroke-width: 2.5; }
-    .media-details-content { padding: 0 1rem 1rem 1rem; }
 
+    .media-details-content { padding: 0 1rem 1rem 1rem; }
+    
     /* CSS Grid a kis multimédia és háttér kártyáknak */
     .media-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
     .context-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
@@ -343,6 +366,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .media-emoji { font-size: 1.5rem; margin-bottom: 0.3rem; line-height: 1; }
     .media-title { font-weight: 800; color: var(--text-main); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.5px;}
     .media-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; }
+    
     .media-details.disabled { opacity: 0.6; pointer-events: none; }
 
     /* ==========================================================================
@@ -365,11 +389,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .think-header { font-weight: bold; margin-bottom: 0.5rem; color: #FFFFFF; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;}
     .think-content > div { min-height: 1.2em; }
     
-    /* Terminál kurzor villogó animációja */
+    /* Terminál kurzor villogó animációja CSS-ből */
     .typing-cursor::after { content: '▋'; animation: blink 1s step-start infinite; margin-left: 4px; color: var(--brand-orange); }
     @keyframes blink { 50% { opacity: 0; } }
 
-    /* Elegáns felugró animáció a dobozok megjelenésekor */
+    /* Elegáns felugró animáció a dobozok és kártyák megjelenésekor */
     .pop-in { animation: popInBox 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; }
     @keyframes popInBox { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
@@ -381,132 +405,76 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .output-focus #totEnergy { font-size: 3.5rem; font-weight: 900; color: var(--brand-orange); line-height: 1.1; letter-spacing: -1px; }
     .energy-header { font-size: 0.95rem; color: var(--text-main); margin-bottom: 1.5rem; padding: 0.5rem 1rem; background: var(--input-bg); display: inline-block; border-radius: 4px; border: 1px solid var(--border-color); }
 
+    /* Flexbox alapú Grid a 6 db metrika kártyának */
     .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    
     .metric-card {
         background: var(--metric-bg); border: 1px solid var(--metric-border); border-radius: 4px;
         padding: 1.25rem 1rem; display: flex; align-items: center; gap: 1rem; transition: transform 0.2s;
-        
-        /* Z-INDEX FIX: Az alap kártya alacsony rétegen van, hogy ne takarja ki a fölé nyíló tooltipeket */
+        /* Z-INDEX FIX: Az alap kártya alacsony rétegen van, hogy a tooltipek felette nyíljanak */
         position: relative;
         z-index: 1;
     }
     
-    /* Z-INDEX FIX: Ha hovereljük (vagy mobilon aktív a tooltip), kiemeljük a kártyát minden más fölé */
+    /* Z-INDEX FIX: Ha hovereljük (vagy mobilon rányomunk), kiemeljük minden más fölé */
     .metric-card:hover, .metric-card.active-card { border-color: #B0B0B0; z-index: 10; }
+
+    /* Egyedi világoskék háttér a Szerver Hűtés kártyának vizuális kiemelésként */
+    .metric-card.cooling-card { background-color: #F4FAFF; border-color: #E1F0FA; }
+    .metric-card.cooling-card:hover, .metric-card.cooling-card.active-card { border-color: #B0D4F0; }
     
     .metric-icon { 
         font-size: 1.75rem; background: #F8FAFC; width: 48px; height: 48px;
         display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0;
     }
     
-    /* ==========================================================================
-       7. TOOLTIP (INFORMÁCIÓS BUBORÉK) ARCHITEKTÚRA ÉS STÍLUSOK
-       Tiszta CSS megoldás, extra JS könyvtárak (pl. Popper.js) nélkül.
-       ========================================================================== */
-    .metric-info { flex: 1; }
+    /* TOOLTIP ARCHITEKTÚRA ÉS STÍLUSOK (Tiszta CSS megoldás, JS függőség nélkül) */
+    .metric-info { flex: 1; min-width: 0; } /* min-width: 0 segít a flexbox szövegtörésben */
     
-    .metric-title-row {
-        display: flex; 
-        align-items: center; 
-        gap: 6px;
-        margin-bottom: 0.2rem;
+    .metric-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 0.2rem; }
+    .metric-title-row h4 { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin: 0; }
+    
+    .metric-info p { 
+        font-size: 1.25rem; font-weight: 800; color: var(--text-main); 
+        word-break: break-word; /* Túl hosszú értékek automatikus törése dobozon belül */
     }
-    
-    .metric-title-row h4 { 
-        font-size: 0.75rem; 
-        color: var(--text-muted); 
-        text-transform: uppercase; 
-        font-weight: bold; 
-        letter-spacing: 0.5px; 
-        margin: 0;
-    }
-    
-    .metric-info p { font-size: 1.25rem; font-weight: 800; color: var(--text-main); }
 
+    /* Az (i) ikon stílusa */
     .info-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 16px;
-        height: 16px;
-        background-color: #EAEAEA;
-        color: var(--brand-dark-gray);
-        font-size: 10px;
-        font-weight: 900;
-        cursor: pointer;
-        border-radius: 50%;
-        position: relative;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
+        display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
+        background-color: #EAEAEA; color: var(--brand-dark-gray); font-size: 10px; font-weight: 900;
+        cursor: pointer; border-radius: 50%; position: relative; transition: all 0.2s ease; flex-shrink: 0;
         /* Tooltip X tengely eltolásának dinamikus változója (Alapértelmezés: tökéletes középre zárás) */
         --tt-x: -50%;
     }
 
-    .info-badge:hover {
-        background-color: var(--brand-orange);
-        color: #FFFFFF;
-    }
+    .info-badge:hover { background-color: var(--brand-orange); color: #FFFFFF; }
 
-    /* Tooltip szövegbuborék ::after pszeudo-elemmel */
+    /* Tooltip buborék ::after pszeudo-elemmel (Kiolvassa a data-tooltip attribútumot) */
     .info-badge::after {
-        content: attr(data-tooltip); /* A HTML-ben megadott data-tooltip szöveget húzza be */
-        position: absolute;
-        bottom: 140%; /* Elegendő távolság, hogy ne takarja ki az ikont */
-        left: 50%;
-        
-        /* Dinamikus eltolás a JS által számolt változó alapján, ami megvédi a képernyő szélén való kilógástól */
-        transform: translateX(var(--tt-x));
-        
-        background-color: var(--brand-black);
-        color: #FFFFFF;
-        font-style: normal;
-        font-size: 0.75rem;
-        font-weight: 400;
-        text-transform: none;
-        line-height: 1.3;
-        padding: 8px 12px;
-        border-radius: 4px;
-        max-width: 210px;
-        width: max-content; /* Hagyjuk, hogy a tartalom diktálja a szélességet, de a max-width megfogja */
-        z-index: 100;
-        
-        /* Kezdetben láthatatlan */
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.15s ease, visibility 0.15s ease;
-        pointer-events: none; /* Ne akadályozza a kattintást alatta */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        text-align: left;
+        content: attr(data-tooltip); position: absolute; bottom: 140%; left: 50%; 
+        transform: translateX(var(--tt-x)); /* JS szabályozza kilógás esetén */
+        background-color: var(--brand-black); color: #FFFFFF; font-style: normal; font-size: 0.75rem; 
+        font-weight: 400; text-transform: none; line-height: 1.3;
+        padding: 8px 12px; border-radius: 4px; max-width: 210px; width: max-content; z-index: 100;
+        opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease; 
+        pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: left;
     }
 
-    /* Tooltip nyíl (CSS háromszög trükk) ::before pszeudo-elemmel */
+    /* Tooltip pici nyíl (CSS háromszög trükk) */
     .info-badge::before {
-        content: '';
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 6px;
-        border-style: solid;
-        border-color: var(--brand-black) transparent transparent transparent; /* Csak a felső szél kap színt, ebből lesz a lefelé mutató nyíl */
-        z-index: 100;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.15s ease, visibility 0.15s ease;
-        pointer-events: none;
+        content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+        border-width: 6px; border-style: solid; border-color: var(--brand-black) transparent transparent transparent; z-index: 100;
+        opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease; pointer-events: none;
     }
 
-    /* Hover (asztali) és aktív állapot (mobilra JS-ből rátett osztály) megjelenítése */
-    .info-badge:hover::after,
-    .info-badge:hover::before,
-    .info-badge.active-tip::after,
-    .info-badge.active-tip::before {
-        opacity: 1;
-        visibility: visible;
+    /* Megjelenítés Hover (Asztal) vagy Active (Mobil kattintás) esetén */
+    .info-badge:hover::after, .info-badge:hover::before, .info-badge.active-tip::after, .info-badge.active-tip::before {
+        opacity: 1; visibility: visible;
     }
 
     /* ==========================================================================
-       8. EXPORT GOMBOK
+       7. EXPORT GOMBOK
        ========================================================================== */
     .export-section { display: none; margin-top: 2rem; padding-top: 2rem; border-top: 1px dashed var(--border-color); }
     .export-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -523,7 +491,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .disclaimer-text { font-size: 0.75rem; color: var(--text-muted); text-align: justify; margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); line-height: 1.4; }
 
     /* ==========================================================================
-       9. MOBIL OPTIMALIZÁCIÓ (Média lekérdezések apró kijelzőkre)
+       8. MOBIL OPTIMALIZÁCIÓ (Responsive Design 480px alatt)
        ========================================================================== */
     @media (max-width: 480px) {
         body { padding: 1rem 0.5rem; }
@@ -532,13 +500,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         .radio-btn .emoji { font-size: 1.1rem; }
         .model-selector { gap: 0.35rem; }
         
-        /* 4 és 5 oszlopos gridet lebutítjuk 2 oszloposra */
+        /* A grid kártyákat 2 oszloposra szűkítjük mobil nézetben */
         .media-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         .context-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         .media-card { padding: 0.75rem 0.25rem; }
         
         .app-title { font-size: 1.5rem; }
         .output-focus #totEnergy { font-size: 2.8rem; }
+        /* A metrikákat egymás alá pakoljuk mobil nézetben */
         .metrics-grid { grid-template-columns: 1fr; }
     }
 </style>
@@ -546,7 +515,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 <body>
 
 <div class="env-calculator" id="calculatorApp">
-    <!-- Fejléc (Header) -->
+    <!-- Fejléc -->
     <div class="brand-header">
         <div class="brand-logo">MI KHK</div>
         <div class="brand-section">Tudomány</div>
@@ -558,13 +527,77 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             Kíváncsi vagy, mennyi energiát és vizet emészt fel egyetlen lekérdezés? Gépeld be a kérdésed, válassz a modellek közül, és tudd meg, mekkora a valós fizikai lábnyoma a digitális asszisztenseknek!
         </p>
 
-        <!-- Prompt beviteli mező és irányító gombok -->
+        <!-- ================= 1. BEMENET SZEKCIÓ (UI BLOKK) ================= -->
+        <div class="section-label">1. Bemenet (Prompt és Csatolmányok)</div>
+        
         <div class="chat-input-wrapper">
+            <!-- A felhasználó ide írja a kérdését -->
             <textarea id="aiPrompt" placeholder="Írd ide a promptot..."></textarea>
+            
+            <!-- RAG (Retrieval-Augmented Generation) Szimulátor -> PDF/Könyv csatolása -->
+            <details class="media-details context-in-input" id="contextSelectorContainer">
+                <summary class="media-summary">
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <span id="contextSummaryIcon" style="font-size: 1.1rem;">📄</span>
+                        <span id="contextSummaryText">Bemenet: Háttéranyag (Opcionális)</span>
+                    </span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </summary>
+                
+                <div class="media-details-content">
+                    <div class="media-grid context-grid">
+                        <label class="media-card-label">
+                            <input type="radio" name="contextType" value="none">
+                            <div class="media-card">
+                                <span class="media-emoji">📝</span>
+                                <span class="media-title">Nincs</span>
+                                <span class="media-desc">Csak prompt</span>
+                            </div>
+                        </label>
+                        <label class="media-card-label">
+                            <input type="radio" name="contextType" value="article" checked>
+                            <div class="media-card">
+                                <span class="media-emoji">📄</span>
+                                <span class="media-title">Cikk</span>
+                                <span class="media-desc">~5e karakter</span>
+                            </div>
+                        </label>
+                        <label class="media-card-label">
+                            <input type="radio" name="contextType" value="pdf_small">
+                            <div class="media-card">
+                                <span class="media-emoji">📑</span>
+                                <span class="media-title">Kis PDF</span>
+                                <span class="media-desc">10 oldal</span>
+                            </div>
+                        </label>
+                        <label class="media-card-label">
+                            <input type="radio" name="contextType" value="pdf_large">
+                            <div class="media-card">
+                                <span class="media-emoji">📊</span>
+                                <span class="media-title">Nagy PDF</span>
+                                <span class="media-desc">100 oldal</span>
+                            </div>
+                        </label>
+                        <label class="media-card-label">
+                            <input type="radio" name="contextType" value="book">
+                            <div class="media-card">
+                                <span class="media-emoji">📚</span>
+                                <span class="media-title">Könyv</span>
+                                <span class="media-desc">500 oldal</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </details>
+
             <div class="input-bottom-row">
                 <div class="char-count"><span id="charCount">0</span> karakter</div>
                 <div style="display: flex; gap: 0.5rem;">
+                    <!-- Véletlenszerű Prompt Generáló Gomb (Dobókocka) -->
                     <button id="randomBtn" class="random-btn" title="Véletlenszerű példa betöltése">🎲</button>
+                    <!-- Fő Számítás Gomb -->
                     <button id="calcBtn" class="send-btn" title="Hatás Kiszámítása">
                         Számítás
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -576,28 +609,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </div>
 
-        <!-- Modellméret választó -->
-        <div class="model-selector">
-            <label class="radio-label">
-                <input type="radio" name="aiModel" value="light">
-                <div class="radio-btn"><span class="emoji">⚡</span><span class="label">Könnyű</span></div>
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="aiModel" value="medium">
-                <div class="radio-btn"><span class="emoji">🧠</span><span class="label">Közepes</span></div>
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="aiModel" value="thinking" checked>
-                <div class="radio-btn"><span class="emoji">🤔</span><span class="label">Gondolkodó</span></div>
-            </label>
-        </div>
+        <!-- ================= 2. KIMENET SZEKCIÓ (UI BLOKK) ================= -->
+        <div class="section-label" style="margin-top: 2rem;">2. Kimenet (Formátum és Modell)</div>
 
-        <!-- 1. Multimodális Kiterjesztés Lenyíló Panel (Accordion) -->
+        <!-- Multimodális Kimenet Kiterjesztés (Kép, Audió, Videó generálás csatolása) -->
         <details class="media-details" id="mediaSelectorContainer">
             <summary class="media-summary">
                 <span style="display: flex; align-items: center; gap: 8px;">
-                    <span id="summaryIcon" style="font-size: 1.1rem;">🎬</span>
-                    <span id="summaryText">Média: Videó (5 mp HD klip)</span>
+                    <span id="summaryIcon" style="font-size: 1.1rem;">📝</span>
+                    <span id="summaryText">Kimenet: Szöveg (Csak szöveg)</span>
                 </span>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -607,10 +627,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             <div class="media-details-content">
                 <div class="media-grid">
                     <label class="media-card-label">
-                        <input type="radio" name="mediaType" value="none">
+                        <input type="radio" name="mediaType" value="none" checked>
                         <div class="media-card">
                             <span class="media-emoji">📝</span>
-                            <span class="media-title">Nincs</span>
+                            <span class="media-title">Szöveg</span>
                             <span class="media-desc">Csak szöveg</span>
                         </div>
                     </label>
@@ -631,7 +651,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                         </div>
                     </label>
                     <label class="media-card-label">
-                        <input type="radio" name="mediaType" value="video" checked>
+                        <input type="radio" name="mediaType" value="video">
                         <div class="media-card">
                             <span class="media-emoji">🎬</span>
                             <span class="media-title">Videó</span>
@@ -642,97 +662,54 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </details>
 
-        <!-- 2. Új Kontextus (RAG) Kiterjesztés Lenyíló Panel -->
-        <details class="media-details" id="contextSelectorContainer">
-            <summary class="media-summary">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <span id="contextSummaryIcon" style="font-size: 1.1rem;">📄</span>
-                    <span id="contextSummaryText">Háttér: Cikk (~5e karakter)</span>
-                </span>
-                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </summary>
-            
-            <div class="media-details-content">
-                <div class="media-grid context-grid">
-                    <label class="media-card-label">
-                        <input type="radio" name="contextType" value="none">
-                        <div class="media-card">
-                            <span class="media-emoji">📝</span>
-                            <span class="media-title">Nincs</span>
-                            <span class="media-desc">Csak prompt</span>
-                        </div>
-                    </label>
-                    <label class="media-card-label">
-                        <input type="radio" name="contextType" value="article" checked>
-                        <div class="media-card">
-                            <span class="media-emoji">📄</span>
-                            <span class="media-title">Cikk</span>
-                            <span class="media-desc">~5e karakter</span>
-                        </div>
-                    </label>
-                    <label class="media-card-label">
-                        <input type="radio" name="contextType" value="pdf_small">
-                        <div class="media-card">
-                            <span class="media-emoji">📑</span>
-                            <span class="media-title">Kis PDF</span>
-                            <span class="media-desc">10 oldal</span>
-                        </div>
-                    </label>
-                    <label class="media-card-label">
-                        <input type="radio" name="contextType" value="pdf_large">
-                        <div class="media-card">
-                            <span class="media-emoji">📊</span>
-                            <span class="media-title">Nagy PDF</span>
-                            <span class="media-desc">100 oldal</span>
-                        </div>
-                    </label>
-                    <label class="media-card-label">
-                        <input type="radio" name="contextType" value="book">
-                        <div class="media-card">
-                            <span class="media-emoji">📚</span>
-                            <span class="media-title">Könyv</span>
-                            <span class="media-desc">500 oldal</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
-        </details>
+        <!-- Modellméret választó (Paraméterszám szimulálása) -->
+        <div class="model-selector">
+            <label class="radio-label">
+                <input type="radio" name="aiModel" value="light">
+                <div class="radio-btn"><span class="emoji">⚡</span><span class="label">Könnyű</span></div>
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="aiModel" value="medium">
+                <div class="radio-btn"><span class="emoji">🧠</span><span class="label">Közepes</span></div>
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="aiModel" value="thinking" checked>
+                <div class="radio-btn"><span class="emoji">🤔</span><span class="label">Gondolkodó</span></div>
+            </label>
+        </div>
 
-        <!-- Eredmények Szekció (Kiszámított adatok megjelenítése) -->
+        <!-- ================= EREDMÉNYEK SZEKCIÓ ================= -->
+        <!-- Alapból rejtve van, a JS teszi láthatóvá a Számítás gomb megnyomása után -->
         <div class="results-section" id="results">
             
-            <!-- Rendszernapló (Terminál nézet) -->
+            <!-- Rendszernapló (Terminál nézet) komplex folyamatokhoz -->
             <div id="thinkingState" class="thinking-state" style="display: none;">
                 <div class="think-header">Rendszernapló</div>
-                <div class="think-content" id="thinkContent">
-                    <!-- Dinamikusan töltődik JavaScriptből a typeWriter animációval -->
-                </div>
+                <div class="think-content" id="thinkContent"></div>
             </div>
 
-            <!-- Fő energiafogyasztás -->
-            <div class="output-focus">
-                <span class="focus-label type-text" data-text="Teljes Energia Lábnyom (Wh)"></span>
-                <span id="totEnergy" class="type-dynamic"></span>
-            </div>
-
-            <!-- Várható kimeneti tokenszám -->
+            <!-- 1. Várható kimeneti tokenszám megjelenítése -->
             <div class="energy-header">
                 <span class="type-text" data-text="Becsült MI Kimenet: "></span>
                 <span id="outTokens" class="type-dynamic" style="font-weight: 800;"></span>
                 <span class="type-text" data-text=" token"></span>
             </div>
 
-            <!-- Metrika Kártyák Biztonságos Tooltip struktúrával -->
+            <!-- 2. Fő energiafogyasztás (Wh) gigantikus számmal -->
+            <div class="output-focus">
+                <span class="focus-label type-text" data-text="Teljes Energia Lábnyom"></span>
+                <span id="totEnergy" class="type-dynamic"></span>
+            </div>
+
+            <!-- 3. Fizikai egyenértékes metrikák (Rács) -->
             <div class="metrics-grid">
                 
-                <div class="metric-card">
+                <div class="metric-card cooling-card">
                     <div class="metric-icon type-text" data-text="☁️"></div>
                     <div class="metric-info">
                         <div class="metric-title-row">
                             <h4 class="type-text" data-text="Szerver Hűtés"></h4>
-                            <!-- data-tooltip attribútumból olvassa ki a CSS a szöveget -->
+                            <!-- Az (i) ikon data-tooltip attribútuma tartalmazza a magyarázatot -->
                             <span class="info-badge" tabindex="0" data-tooltip="A felhőben dolgozó szervereket hatalmas hűtőtornyok temperálják. A legfrissebb iparági kutatások (WUE átlagok) alapján 1 Wh energia elhasználása során nagyjából 0,5–1 milliliter édesvíz párolog el végleg a légkörbe.">i</span>
                         </div>
                         <p><span id="metricCoolingWater" class="type-dynamic"></span><span class="type-text" data-text=" ml"></span></p>
@@ -744,7 +721,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     <div class="metric-info">
                         <div class="metric-title-row">
                             <h4 class="type-text" data-text="Telefon Töltés"></h4>
-                            <span class="info-badge" tabindex="0" data-tooltip="Egy átlagos modern okostelefon akkumulátora kb. 15 Wh kapacitású. Az AC/DC hálózati adapter konverziós veszteségei és a töltés közbeni hőveszteség miatt azonban a konnektorból valójában kb. 20 Wh-t vesz fel egy teljes 100%-os töltéshez.">i</span>
+                            <span class="info-badge" tabindex="0" data-tooltip="Egy modern okostelefon akkumulátora kb. 17,5 Wh kapacitású. Az AC/DC hálózati adapter konverziós veszteségei és a töltés közbeni hőveszteség miatt azonban a konnektorból valójában kb. 22,5 Wh-t vesz fel egy teljes 100%-os töltéshez.">i</span>
                         </div>
                         <p><span id="metricPhone" class="type-dynamic"></span><span class="type-text" data-text="%"></span></p>
                     </div>
@@ -765,10 +742,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     <div class="metric-icon type-text" data-text="💧"></div>
                     <div class="metric-info">
                         <div class="metric-title-row">
-                            <h4 class="type-text" data-text="Tiszta Víz"></h4>
+                            <h4 class="type-text" data-text="Víztisztítás"></h4>
                             <span class="info-badge" tabindex="0" data-tooltip="A települési vízművek komplex tisztító és szivattyúzó hálózata fajlagosan nagyjából 0,4 Wh villamos energiát használ fel 1 liter tiszta, iható vezetékes ivóvíz elosztásához.">i</span>
                         </div>
-                        <p><span id="metricWater" class="type-dynamic"></span><span class="type-text" data-text=" Liter"></span></p>
+                        <p><span id="metricWater" class="type-dynamic"></span><span class="type-text" data-text=" liter"></span></p>
                     </div>
                 </div>
                 
@@ -779,7 +756,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <h4 class="type-text" data-text="HD Streamelés"></h4>
                             <span class="info-badge" tabindex="0" data-tooltip="A Nemzetközi Energiaügynökség (IEA) becslései alapján egy HD minőségű videostreamelés (az adatközpontok és a hálózat együttes terhelését nézve) óránként kb. 75 Wh áramot fogyaszt, azaz percenként 1,25 Wh-t.">i</span>
                         </div>
-                        <p><span id="metricStream" class="type-dynamic"></span><span class="type-text" data-text=" Perc"></span></p>
+                        <p><span id="metricStream" class="type-dynamic"></span><span class="type-text" data-text=" perc"></span></p>
                     </div>
                 </div>
                 
@@ -790,13 +767,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <h4 class="type-text" data-text="Vízforralás"></h4>
                             <span class="info-badge" tabindex="0" data-tooltip="A fizika törvényei alapján – a víz fajhőjét (4,18 J/g°C) és a háztartási vízforralók hőveszteségét is belekalkulálva – egyetlen csésze (~250 ml) szobahőmérsékletű víz 100°C-ra hevítése pontosan 25 Wh energiát igényel.">i</span>
                         </div>
-                        <p><span id="metricTea" class="type-dynamic"></span><span class="type-text" data-text=" Csésze"></span></p>
+                        <p><span id="metricTea" class="type-dynamic"></span><span class="type-text" data-text=" bögre"></span></p>
                     </div>
                 </div>
                 
             </div>
 
-            <!-- Export szekció (Mentés képként, Megosztás) -->
+            <!-- Export szekció (Social Media megosztás) -->
             <div class="export-section" id="exportSection">
                 <div class="export-actions">
                     <button id="downloadBtn" class="export-btn">
@@ -852,10 +829,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Empirikus kutatások alapján megállapított fix Watt-óra (Wh) költségek, 
     // amiket a szöveggenerálás mellé pluszban kifizetünk energiában.
     const MEDIA_ENERGY_TAX_WH = {
-        'none': 0.0,
+        'none': 0.0,      // Szövegnél nincs plusz adó
         'image': 2.9,     // Luccioni et al. (2023) - DALL-E 3 szintű diffúzió költsége
         'podcast': 2.0,   // ~1 percnyi Nvidia H100 GPU-n futtatott Text-to-Speech (TTS)
-        'video': 25.0     // ~5 mp Sora / Runway Gen-3 generálás (óriási VRAM és compute igény)
+        'video': 25.0     // ~5 mp Sora / Runway Gen-3 generálás (Óriási VRAM igény)
     };
 
     /**
@@ -864,42 +841,36 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
      */
     function calculateTokens(text, contextType) {
         let charCount = text.length;
-        // Szóközök és üres bemenet kezelése a szavak számolásánál
         let wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
         
         // 1.1 Hosszú kontextus matek (Prefill Phase RAG szimuláció)
-        // Ha a felhasználó csatol egy dokumentumot, annak a karakterszámát virtuálisan 
-        // hozzáadjuk a bemenethez. A modern LLM-eknek ezt is végig kell olvasniuk (Prefill).
+        // A modern LLM-eknek ezt is végig kell olvasniuk (Prefill), ami jelentős input költség.
         if (contextType === 'article') { charCount += 5000; wordCount += 850; }
         else if (contextType === 'pdf_small') { charCount += 30000; wordCount += 5000; }
         else if (contextType === 'pdf_large') { charCount += 300000; wordCount += 50000; }
         else if (contextType === 'book') { charCount += 1500000; wordCount += 250000; }
         
-        // 1.2 BPE (Byte Pair Encoding) Token szimuláció
-        // Az LLM-ek (pl. ChatGPT) általában 4 karaktert vagy 0.75 szót számolnak 1 tokennek.
-        // Mindkettőt kiszámoljuk, és a nagyobbat vesszük a biztonság kedvéért.
+        // 1.2 BPE (Byte Pair Encoding) Token szimuláció (Max választás a biztonságért)
         const inputTokens = Math.max(Math.ceil(charCount / 4.0), Math.ceil(wordCount * 1.33));
         
         // 1.3 Kimeneti Token Predikció (Igetövek és kulcsszavak alapján)
-        // Reguláris kifejezésekkel (Regex) vizsgáljuk, mit akar a felhasználó.
         const lowerText = text.toLowerCase();
         let baseOutputTokens = 0;
         
         if (/\b(write|essay|story|írj|esszé|történet)\b/.test(lowerText)) { 
-            baseOutputTokens = 400 + (inputTokens * 2.0); // Esszéírásnál sok a kimenet
+            baseOutputTokens = 400 + (inputTokens * 2.0); // Bőbeszédű kimenet
         } else if (/\b(code|script|kód|szkript)\b/.test(lowerText)) { 
-            baseOutputTokens = 300 + (inputTokens * 1.5); // Kódolásnál közepesen sok
+            baseOutputTokens = 300 + (inputTokens * 1.5); 
         } else if (/\b(summarize|tldr|összefoglal|röviden)\b/.test(lowerText)) { 
-            baseOutputTokens = Math.max(50, inputTokens * 0.3); // Összefoglalásnál rövidül a szöveg
+            baseOutputTokens = Math.max(50, inputTokens * 0.3); // Rövidített kimenet
         } else if (/\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/.test(lowerText) || lowerText.includes('?')) { 
             baseOutputTokens = 150 + (inputTokens * 1.0); // Kérdés-felelet
         } else { 
-            baseOutputTokens = 25 + (inputTokens * 0.2); // Általános, rövid chat válasz
+            baseOutputTokens = 25 + (inputTokens * 0.2); // Általános csevegés
         }
 
         // 1.4 Determinisztikus Variancia ("Organikus" hatás)
-        // Hogy a végeredmény ne legyen "túl kerek" szám, adunk hozzá egy kis "zajt",
-        // de úgy, hogy ugyanarra a pontos szövegre mindig ugyanazt az eredményt adja!
+        // ASCII kódok alapján "véletlenszerű", de mindig ugyanarra az értékre kifutó szám.
         let charCodeSum = 0;
         for (let i = 0; i < charCount; i++) { charCodeSum += text.charCodeAt(i) || 0; }
         const variance = (charCodeSum % 50) - 25; 
@@ -910,64 +881,59 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     /**
      * ENERGIA ÉS VÍZ SZÁMÍTÁS (Watt-óra és Milliliter)
-     * Kiszámolja a tényleges ökológiai lábnyomot az iparági átlagok alapján.
      */
     function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType) {
-        // Alapértelmezett (Közepes / GPT-4o szint) energia szorzók (Watt-óra per 1000 token)
+        // Alapértelmezett (Közepes / GPT-4o szint) energia szorzók (Wh / 1000 token)
         let inEnergyRate = 0.30; let outEnergyRate = 1.00; 
         let finalOutputTokens = outputTokens;
 
         if (modelTier === 'light') {
-            // Könnyű modellek (Llama 3 8B, Haiku) kisebb paraméterszámúak, gyorsabbak.
             inEnergyRate = 0.05; outEnergyRate = 0.60;
         } else if (modelTier === 'thinking') {
-            // Gondolkodó modellek (OpenAI o1) drágábbak, ÉS a háttérben lefut egy
-            // rejtett "Chain of Thought" (Gondolatmenet), amit mi 5x-ös kimeneti szorzóval szimulálunk.
+            // Gondolkodó modellek (o1) drágábbak és rejtett "Chain of Thought"-ot használnak
             inEnergyRate = 0.80; outEnergyRate = 4.00; 
-            finalOutputTokens *= 5; 
+            finalOutputTokens *= 5; // A belső gondolatmenet 5x szorzót kap
         }
 
-        // Token alapú energia: (Token / 1000) * Wh/1k-ráta
         const inputEnergy = (inputTokens / 1000) * inEnergyRate;
         const outputEnergy = (finalOutputTokens / 1000) * outEnergyRate;
         
-        // Média generálási adó lekérése (Kép/Videó/Hang hozzáadása)
         const mediaEnergy = MEDIA_ENERGY_TAX_WH[mediaType] || 0.0;
         
-        // PUE (Power Usage Effectiveness) = 1.2
-        // Az adatközpontok nemcsak a GPU-kra, hanem a hűtésre, világításra is energiát használnak.
-        // Ezt hívják adatközponti rezsinek. Minden 1 Wh GPU munkára jut 0.2 Wh infrastruktúra fenntartás.
+        // PUE (Power Usage Effectiveness) - Infrastruktúra adó (Hűtés, hálózat)
         const AI_HYPERSCALER_AVERAGE_PUE = 1.2;
         const totalEnergyWh = (inputEnergy + outputEnergy + mediaEnergy) * AI_HYPERSCALER_AVERAGE_PUE;
         
-        // WUE (Water Usage Effectiveness)
-        // A szerverek hűtőtornyaiból kb. 0.5 milliliter friss víz párolog el minden elhasznált Watt-óra után.
+        // WUE (Water Usage Effectiveness) - 0.5 ml/Wh hűtővíz párolgás
         const datacenterWaterML = totalEnergyWh * 0.5;
 
         return { totalEnergyWh, datacenterWaterML, finalOutputTokens };
     }
 
     /**
-     * FIZIKAI EGYENÉRTÉKESEK (Matematikai konverziók a mindennapi életre)
+     * FIZIKAI EGYENÉRTÉKESEK (Matek a mindennapi példákhoz)
      */
     function getPhysicalEquivalents(energyWh) {
         return {
-            // Egy átlagos okostelefon (pl. iPhone) akkuja ~15Wh. A falból felvett áram a töltési
-            // veszteség (AC/DC konverzió és hő) miatt ~20Wh.
-            phoneChargePct: (energyWh / 20) * 100,
-            
-            // Egy szabványos LED izzó 10 Wattos. Vagyis 10 Watt-órát (Wh) fogyaszt el 1 óra (60 perc) alatt.
-            ledMinutes: (energyWh / 10) * 60,
-            
-            // 1 liter ivóvíz megtisztítása a városi vízműveknél nagyjából 0.4 Watt-óra energiát igényel.
-            waterLiters: energyWh / 0.4,
-            
-            // Egy Netflix HD stream futtatása TV-n nagyjából 75 Wattot igényel óránként (1.25 Wh/perc).
-            streamMinutes: energyWh / 1.25,
-            
-            // Egy csésze (250ml) víz felforralása egy elektromos vízforralóban kb. 25 Watt-óra.
-            teaCups: energyWh / 25
+            phoneChargePct: (energyWh / 22.5) * 100, // 22.5 Wh tényleges hálózati töltési igény
+            ledMinutes: (energyWh / 10) * 60, // 10W LED izzó = 10 Wh / óra
+            waterLiters: energyWh / 0.4, // Vízművek szivattyú energiája: 0.4 Wh/Liter
+            streamMinutes: energyWh / 1.25, // HD Stream Netflix: 75W (1.25 Wh/Perc)
+            teaCups: energyWh / 25 // 1 bögre víz (250ml) 100°C-ra = ~25 Wh
         };
+    }
+
+    /**
+     * MAGYAR LOKALIZÁCIÓS SZÁMFORMÁZÓ (Tizedesvesszők és ezres tagolók)
+     * Ha a szám abszolút értéke >= 100, levágja a tizedeseket, hogy ne folyjon ki a dobozból.
+     */
+    function formatHu(num) {
+        const isInteger = num % 1 === 0;
+        const decimals = Math.abs(num) >= 100 ? 0 : 2;
+        return num.toLocaleString('hu-HU', {
+            minimumFractionDigits: isInteger ? 0 : (Math.abs(num) >= 100 ? 0 : 2),
+            maximumFractionDigits: decimals
+        });
     }
 
     // ==========================================================================
@@ -996,39 +962,32 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     const exportSection = document.getElementById('exportSection');
 
     let hasEditedPrompt = false; 
-    let defaultPrompt = ""; // Ezt az initRandomScenario tölti fel dinamikusan
+    let defaultPrompt = ""; 
 
-    // --- Média kiválasztás logika (Lenyíló menü okos bezárása és cím frissítése) ---
+    // Média kiválasztás logika (Lenyíló menü okos bezárása és felirat frissítése)
     mediaInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             if (e.target.checked) {
-                const val = e.target.value;
-                if (val === 'none') {
-                    summaryIcon.textContent = '🎨';
-                    summaryText.textContent = 'Opcionális: Multimédia csatolása';
-                } else {
-                    const card = e.target.nextElementSibling;
-                    const emoji = card.querySelector('.media-emoji').textContent;
-                    const title = card.querySelector('.media-title').textContent;
-                    const desc = card.querySelector('.media-desc').textContent;
-                    
-                    summaryIcon.textContent = emoji;
-                    summaryText.textContent = `Média: ${title} (${desc.replace('+ ', '+')})`;
-                }
-                // Kiválasztás után automatikusan összecsukjuk az Accordion-t
+                const card = e.target.nextElementSibling;
+                const emoji = card.querySelector('.media-emoji').textContent;
+                const title = card.querySelector('.media-title').textContent;
+                const desc = card.querySelector('.media-desc').textContent;
+                
+                summaryIcon.textContent = emoji;
+                summaryText.textContent = `Kimenet: ${title} (${desc.replace('+ ', '+')})`;
                 mediaSelectorContainer.removeAttribute('open');
             }
         });
     });
 
-    // --- Kontextus kiválasztás logika (Lenyíló menü okos bezárása és cím frissítése) ---
+    // Kontextus kiválasztás logika
     contextInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             if (e.target.checked) {
                 const val = e.target.value;
                 if (val === 'none') {
                     contextSummaryIcon.textContent = '📄';
-                    contextSummaryText.textContent = 'Opcionális: Háttéranyag csatolása';
+                    contextSummaryText.textContent = 'Bemenet: Háttéranyag (Opcionális)';
                 } else {
                     const card = e.target.nextElementSibling;
                     const emoji = card.querySelector('.media-emoji').textContent;
@@ -1036,49 +995,43 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     const desc = card.querySelector('.media-desc').textContent;
                     
                     contextSummaryIcon.textContent = emoji;
-                    contextSummaryText.textContent = `Háttér: ${title} (${desc})`;
+                    contextSummaryText.textContent = `Bemenet: ${title} (${desc})`;
                 }
-                // Kiválasztás után automatikusan összecsukjuk az Accordion-t
                 contextSelectorContainer.removeAttribute('open');
             }
         });
     });
 
-    // --- Fókusz esemény: "Tiszta Lap" biztosítása a felhasználónak ---
-    // Ha a felhasználó belekattint a mezőbe és még az alapértelmezett, gép által generált 
-    // szöveg van benne, azt kitöröljük, hogy ne kelljen kézzel törölgetnie.
+    // Fókusz esemény: "Tiszta Lap" biztosítása a felhasználónak
     aiPrompt.addEventListener('focus', () => {
         if (aiPrompt.value === defaultPrompt) {
             aiPrompt.value = ''; 
             charCountDisplay.textContent = '0';
             
-            // Multimédia visszaállítása alaphelyzetbe (Nincs opcióra)
+            // Értékek visszaállítása alaphelyzetbe
             document.querySelector('input[name="mediaType"][value="none"]').checked = true;
-            summaryIcon.textContent = '🎨';
-            summaryText.textContent = 'Opcionális: Multimédia csatolása';
+            summaryIcon.textContent = '📝';
+            summaryText.textContent = 'Kimenet: Szöveg (Csak szöveg)';
             
-            // Kontextus (RAG) visszaállítása alaphelyzetbe (Nincs opcióra)
             document.querySelector('input[name="contextType"][value="none"]').checked = true;
             contextSummaryIcon.textContent = '📄';
-            contextSummaryText.textContent = 'Opcionális: Háttéranyag csatolása';
+            contextSummaryText.textContent = 'Bemenet: Háttéranyag (Opcionális)';
         }
     });
 
     // ================= VÉLETLENSZERŰ SZCENÁRIÓ BETÖLTÉSE =================
-    // Ez a függvény fut le oldalbetöltéskor, és amikor a felhasználó a dobókockára kattint.
     function initRandomScenario() {
         const scenario = PRESET_SCENARIOS[Math.floor(Math.random() * PRESET_SCENARIOS.length)];
         
         aiPrompt.value = scenario.prompt;
-        defaultPrompt = scenario.prompt; // Fontos: beállítjuk defaultként, így fókuszra törlődni fog!
+        defaultPrompt = scenario.prompt; // Biztosítéknak elmentjük, hogy fókuszra törölhető legyen
         
-        // Rádiógombok aktiválása a véletlenszerű feladatkírásnak megfelelően
+        // Rádiógombok programozott átállítása
         document.querySelector(`input[name="aiModel"][value="${scenario.model}"]`).checked = true;
         
         const mediaRadio = document.querySelector(`input[name="mediaType"][value="${scenario.media}"]`);
         mediaRadio.checked = true;
-        // A dispatchEvent kényszeríti a "change" esemény lefutását, mintha a felhasználó kattintott volna
-        mediaRadio.dispatchEvent(new Event('change')); 
+        mediaRadio.dispatchEvent(new Event('change')); // UI frissítés kikényszerítése
         
         const contextRadio = document.querySelector(`input[name="contextType"][value="${scenario.context}"]`);
         contextRadio.checked = true;
@@ -1087,20 +1040,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         charCountDisplay.textContent = aiPrompt.value.length;
     }
     
-    // Azonnali végrehajtás az oldal legelső betöltésekor
+    // Azonnali végrehajtás betöltéskor
     initRandomScenario();
-
-    // Gomb eseménykezelője a véletlenszerű betöltéshez (Dobókocka gomb)
+    // Dobókocka esemény
     randomBtn.addEventListener('click', initRandomScenario);
-    // =================================================================================
 
-    // Segédfüggvény a JavaScript szál rövid "altatására" aszinkron animációkhoz
+    // Segédfüggvény a JavaScript szál aszinkron "altatására"
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    /**
-     * Terminál-szerű gépelési effektus (Typewriter)
-     * Karakterenként, véletlenszerű időközökkel írja ki a szöveget a nagyobb valósághűségért.
-     */
+    // Terminál-szerű gépelési effektus
     async function typeWriter(element, text, minDelay = 20, maxDelay = 60) {
         element.textContent = ''; 
         const characters = Array.from(text);
@@ -1111,40 +1059,35 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         }
     }
 
-    // Karakter számláló folyamatos frissítése gépelés közben
     aiPrompt.addEventListener('input', () => {
         charCountDisplay.textContent = aiPrompt.value.length;
         if (!hasEditedPrompt) hasEditedPrompt = true; 
     });
 
-    // Enter gomb lenyomásának lekezelése (Kényelmi funkció)
     aiPrompt.addEventListener('keydown', (e) => {
-        // Csak a sima Enter gombra reagál, Shift+Enter esetén új sort kezd a textarea-ban
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); calcBtn.click(); }
     });
 
     // ================= FŐ FOLYAMAT: Számolás Gomb Logikája =================
     calcBtn.addEventListener('click', async () => {
         const text = aiPrompt.value;
-        if (text.length === 0) return; // Ne fusson le, ha üres a mező
+        if (text.length === 0) return; 
 
         exportSection.style.display = 'none'; 
 
-        // Kiválasztott paraméterek beolvasása az UI formból
+        // Kiválasztott értékek kiolvasása a formból
         const selectedModel = document.querySelector('input[name="aiModel"]:checked').value;
         const selectedMedia = document.querySelector('input[name="mediaType"]:checked').value;
         const selectedContext = document.querySelector('input[name="contextType"]:checked').value;
         
-        // 1. Tokenek kiszámítása (Heurisztikai motor 1. lépés)
+        // Heurisztikai számítások futtatása
         const tokens = calculateTokens(text, selectedContext);
-        // 2. Energia, Víz és Kimenet kiszámítása (Heurisztikai motor 2. lépés)
         const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia);
-        // 3. Fizikai egyenértékesek kiszámítása a megjelenítéshez
         const equivalents = getPhysicalEquivalents(impact.totalEnergyWh);
 
-        // UI elemek (gombok, rádiógombok) ideiglenes letiltása, amíg a "számítás" (animáció) fut,
-        // nehogy a felhasználó menet közben elnyomkodja a beállításokat.
+        // UI elemek lezárása az animáció idejére
         calcBtn.disabled = true;
+        randomBtn.disabled = true;
         modelSelectorContainer.classList.add('disabled');
         mediaSelectorContainer.classList.add('disabled');
         contextSelectorContainer.classList.add('disabled');
@@ -1152,44 +1095,42 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         mediaInputs.forEach(radio => radio.disabled = true);
         contextInputs.forEach(radio => radio.disabled = true);
 
-        // A kiszámolt eredményeket nem egyből írjuk ki, hanem eltároljuk egy "data-text" 
-        // attribútumban. Később a Typewriter animáció innen fogja kiolvasni és begépelni őket.
-        document.getElementById('outTokens').setAttribute('data-text', `~${impact.finalOutputTokens.toLocaleString()}`);
-        document.getElementById('totEnergy').setAttribute('data-text', impact.totalEnergyWh.toFixed(3));
-        document.getElementById('metricCoolingWater').setAttribute('data-text', impact.datacenterWaterML.toFixed(2));
-        document.getElementById('metricPhone').setAttribute('data-text', equivalents.phoneChargePct.toFixed(2));
-        document.getElementById('metricLed').setAttribute('data-text', equivalents.ledMinutes.toFixed(1));
-        document.getElementById('metricWater').setAttribute('data-text', equivalents.waterLiters.toFixed(2));
-        document.getElementById('metricStream').setAttribute('data-text', equivalents.streamMinutes.toFixed(1));
-        document.getElementById('metricTea').setAttribute('data-text', equivalents.teaCups.toFixed(2));
+        // A 'data-text' attribútumok feltöltése formázott értékekkel (A Wh már a szám mellé van rakva!)
+        document.getElementById('outTokens').setAttribute('data-text', `~${impact.finalOutputTokens.toLocaleString('hu-HU')}`);
+        document.getElementById('totEnergy').setAttribute('data-text', `${formatHu(impact.totalEnergyWh)} Wh`);
+        document.getElementById('metricCoolingWater').setAttribute('data-text', formatHu(impact.datacenterWaterML));
+        document.getElementById('metricPhone').setAttribute('data-text', formatHu(equivalents.phoneChargePct));
+        document.getElementById('metricLed').setAttribute('data-text', formatHu(equivalents.ledMinutes));
+        document.getElementById('metricWater').setAttribute('data-text', formatHu(equivalents.waterLiters));
+        document.getElementById('metricStream').setAttribute('data-text', formatHu(equivalents.streamMinutes));
+        document.getElementById('metricTea').setAttribute('data-text', formatHu(equivalents.teaCups));
 
-        // Rácsok és kártyák elrejtése az újra-animáláshoz (ha már korábban futott számítás)
+        // Rácsok resetelése az újra-animáláshoz
         const allTypeElements = resultsSection.querySelectorAll('.type-text, .type-dynamic');
         const structuralBoxes = resultsSection.querySelectorAll('.energy-header, .output-focus, .metric-card');
 
         allTypeElements.forEach(el => el.textContent = '');
         structuralBoxes.forEach(box => { box.style.display = 'none'; box.classList.remove('pop-in'); });
 
-        // Rendszernapló (Thinking State / Terminál) resetelése
         const thinkingState = document.getElementById('thinkingState');
         const thinkContent = document.getElementById('thinkContent');
         thinkingState.style.display = 'none';
         thinkingState.classList.remove('pop-in');
         thinkContent.innerHTML = ''; 
 
-        // Megjelenítjük a fő eredmény blokkot (de a kártyák még rejtve vannak belül)
+        // Megjelenítjük a konténert
         resultsSection.style.display = 'block';
+        
+        // AUTO-SCROLL: Az animáció kezdetén a kalkulátor infót (oldal alja) a képernyő aljához igazítjuk
+        document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
 
         let minSpeed = 5; let maxSpeed = 15;
-        // Csak akkor mutatjuk a rendszernaplót, ha valami komplex művelet zajlik
-        // (Pl. "Gondolkodó" modell (o1), Videó generálás, vagy nagy PDF feldolgozása)
         let showThinkingState = (selectedModel === 'thinking' || selectedMedia === 'video' || selectedContext !== 'none');
 
-        // Gépelési sebesség dinamikus állítása a választott modelltől függően
         if (selectedModel === 'light') { minSpeed = 1; maxSpeed = 3; } 
         else if (selectedModel === 'medium') { minSpeed = 2; maxSpeed = 5; }
 
-        // Dinamikus konzol logok (Rendszernapló) összeállítása a kiválasztott opciók alapján
+        // ==== 1. Terminál (Rendszernapló) animálása ====
         if (showThinkingState) {
             thinkingState.style.display = 'block';
             thinkingState.classList.add('pop-in');
@@ -1204,7 +1145,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 thoughtLines.push("> Multimodális csővezeték előkészítése...");
             }
             
-            // Háttéranyag feldolgozás vizualizációja
             if (selectedContext === 'pdf_large' || selectedContext === 'book') {
                 thoughtLines.push(`> RAG indexelés: ${selectedContext === 'book' ? 'Masszív kódbázis / könyv' : 'Nagy PDF (100 oldal)'} memóriába töltése...`);
                 thoughtLines.push("> Vektoradatbázis hasonlóság-keresés (Embedding)...");
@@ -1216,40 +1156,45 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 thoughtLines.push("> HD Videó diffúziós rétegek renderelése (24 fps)...");
             }
 
-            // Awwait ciklus: Szépen egymás után, gépelési effektussal írjuk ki a terminál sorokat
             for (const textLine of thoughtLines) {
                 const lineEl = document.createElement('div');
                 thinkContent.appendChild(lineEl);
                 lineEl.classList.add('typing-cursor');
+                
+                // AUTO-SCROLL: A terminál gépelése közben is végig lenn tartjuk a fókuszt
+                document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                
                 await typeWriter(lineEl, textLine, 5, 20); 
-                await sleep(300); // Kicsit vár a következő sor előtt
+                await sleep(300); 
                 lineEl.classList.remove('typing-cursor'); 
             }
             await sleep(200); 
         } else {
-            // Ha nincs terminál nézet (egyszerű lekérdezés), egy kis műszünetet tartunk, 
-            // hogy lefusson a "betöltés" illúziója
             if (selectedModel === 'light') await sleep(100);
             else if (selectedModel === 'medium') await sleep(250);
         }
 
-        // Fő adatok animálása (Megjelennek a kártyák és elkezdenek gépelődni a számok)
+        // ==== 2. Kártyák és metrikák gépeléses animálása ====
         for (const el of allTypeElements) {
             const textToType = el.getAttribute('data-text');
             if (textToType) {
                 const parentBox = el.closest('.energy-header, .output-focus, .metric-card');
                 if (parentBox && parentBox.style.display === 'none') {
-                    // Ha a kártya még rejtve van, most "beugrik" (pop-in)
                     parentBox.style.display = ''; 
                     parentBox.classList.add('pop-in');
+                    
+                    // AUTO-SCROLL: Minden új doboz felugrásakor lejjebb toljuk az oldalt
+                    document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    
                     await sleep(40); 
                 }
                 await typeWriter(el, textToType, minSpeed, maxSpeed);
             }
         }
         
-        // Folyama vége: UI elemek újra engedélyezése, hogy lehessen új számítást indítani
+        // Visszaengedjük a gombokat a felhasználónak
         calcBtn.disabled = false;
+        randomBtn.disabled = false;
         modelSelectorContainer.classList.remove('disabled');
         mediaSelectorContainer.classList.remove('disabled');
         contextSelectorContainer.classList.remove('disabled');
@@ -1257,26 +1202,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         mediaInputs.forEach(radio => radio.disabled = false);
         contextInputs.forEach(radio => radio.disabled = false);
 
-        // Infografika mentése gombok megjelenítése a végén
         exportSection.style.display = 'block';
         exportSection.classList.add('pop-in');
+        
+        // Végső igazítás, hogy a social média gombok is tökéletesen látszódjanak
+        setTimeout(() => {
+            document.querySelector('.disclaimer-text').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
     });
 
     charCountDisplay.textContent = aiPrompt.value.length;
 
     // ==========================================================================
     // 3. INFOGRAFIKA EXPORTÁLÁS (NATIVE HTML5 CANVAS)
-    // Ez a szekció láthatatlanul, a memóriában rajzolja meg és exportálja ki
-    // a kalkulátor végeredményét egy letisztult PNG képpé (Social media ready).
+    // Ez a kód láthatatlanul, pixelről pixelre megrajzolja és kimenti a végeredményt.
     // ==========================================================================
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
     
     /**
-     * TEXT WRAPPING MATEMATIKA A CANVAS-HEZ:
-     * A HTML5 Canvas "buta": a fillText() parancs nem tud sort törni, ha a szöveg kifut a képből.
-     * Ez a függvény szavanként végigmegy a beírt prompton, leméri a pillanatnyi pixel 
-     * szélességet (ctx.measureText), és ha az túllépi a margókat, elvágja a stringet és új sort kezd.
+     * TEXT WRAPPING MATEMATIKA A CANVAS-HEZ
+     * Mivel a HTML5 Canvas `fillText` nem tud automatikusan sort törni, ez a függvény
+     * megméri minden szó pixelszélességét, és beállítja, hol kell elvágni a sorokat.
      */
     function getCanvasLines(ctx, text, maxWidth) {
         const words = text.split(/\s+/);
@@ -1294,8 +1241,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /**
-     * Létrehoz egy 1080px (Instagram/Facebook standard) széles rajzvásznat a memóriában,
-     * és pixelről pixelre felépíti rajta a kalkulátor végeredményét.
+     * Vizuális Vászon Generátor (Létrehoz egy 1080px széles PNG képet memóriában)
      */
     function createInfographicCanvas() {
         const promptText = aiPrompt.value;
@@ -1304,39 +1250,36 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const outTokens = document.getElementById('outTokens').innerText;
         const totEnergy = document.getElementById('totEnergy').innerText;
         
-        // Média és Kontextus opciók feldolgozása a fekete "Kapszula" feliratához
         const selectedMediaValue = document.querySelector('input[name="mediaType"]:checked').value;
         let mediaText = '';
-        if (selectedMediaValue === 'image') mediaText = ' | MÉDIA: +1 KÉP';
-        else if (selectedMediaValue === 'podcast') mediaText = ' | MÉDIA: +1P PODCAST';
-        else if (selectedMediaValue === 'video') mediaText = ' | MÉDIA: +5MP VIDEÓ';
+        if (selectedMediaValue === 'image') mediaText = ' | KIMENET: +1 KÉP';
+        else if (selectedMediaValue === 'podcast') mediaText = ' | KIMENET: +1P PODCAST';
+        else if (selectedMediaValue === 'video') mediaText = ' | KIMENET: +5MP VIDEÓ';
 
         const selectedContextValue = document.querySelector('input[name="contextType"]:checked').value;
         let contextText = '';
-        if (selectedContextValue === 'article') contextText = ' | HÁTTÉR: CIKK';
-        else if (selectedContextValue === 'pdf_small') contextText = ' | HÁTTÉR: KIS PDF';
-        else if (selectedContextValue === 'pdf_large') contextText = ' | HÁTTÉR: NAGY PDF';
-        else if (selectedContextValue === 'book') contextText = ' | HÁTTÉR: KÖNYV';
+        if (selectedContextValue === 'article') contextText = ' | BEMENET: CIKK';
+        else if (selectedContextValue === 'pdf_small') contextText = ' | BEMENET: KIS PDF';
+        else if (selectedContextValue === 'pdf_large') contextText = ' | BEMENET: NAGY PDF';
+        else if (selectedContextValue === 'book') contextText = ' | BEMENET: KÖNYV';
 
         const infoText = `MODELL: ${modelName.toUpperCase()}${mediaText}${contextText}   |   KIMENET: ${outTokens} TOKEN`;
 
         // Értékek begyűjtése a HTML DOM-ból a kártyákhoz
         const metrics = [
-            { icon: '☁️', title: 'Szerver Hűtés', val: document.getElementById('metricCoolingWater').innerText + ' ml' },
+            { icon: '☁️', title: 'Szerver Hűtés', val: document.getElementById('metricCoolingWater').innerText + ' ml', bg: '#F4FAFF', border: '#E1F0FA' },
             { icon: '📱', title: 'Telefon Töltés', val: document.getElementById('metricPhone').innerText + '%' },
             { icon: '💡', title: 'LED Izzó', val: document.getElementById('metricLed').innerText + ' perc' },
-            { icon: '💧', title: 'Tiszta Víz', val: document.getElementById('metricWater').innerText + ' L' },
-            { icon: '📺', title: 'HD Stream', val: document.getElementById('metricStream').innerText + ' Perc' },
-            { icon: '☕', title: 'Vízforralás', val: document.getElementById('metricTea').innerText + ' Csésze' }
+            { icon: '💧', title: 'Víztisztítás', val: document.getElementById('metricWater').innerText + ' liter' },
+            { icon: '📺', title: 'HD Stream', val: document.getElementById('metricStream').innerText + ' perc' },
+            { icon: '☕', title: 'Vízforralás', val: document.getElementById('metricTea').innerText + ' bögre' }
         ];
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const width = 1080;
         
-        // DINAMIKUS MAGASSÁG SZÁMÍTÁS:
-        // Mielőtt beállítjuk a vászon méretét, le kell mérnünk, hány soros lesz a prompt.
-        // Ha a felhasználó egy regényt másolt be, a vásznat meg kell nyújtani függőlegesen.
+        // DINAMIKUS MAGASSÁG: Lemérjük, hány soros lesz a begépelt prompt
         ctx.font = 'italic 30px Arial, sans-serif';
         const wrappedPromptLines = getCanvasLines(ctx, promptText, 780);
         const promptBoxHeight = Math.max(140, wrappedPromptLines.length * 42 + 80);
@@ -1345,18 +1288,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         canvas.width = width;
         canvas.height = height;
 
-        // Háttér kitöltése sötétszürkével (app stílushoz illeszkedve)
         ctx.fillStyle = '#1A1A1A';
         ctx.fillRect(0, 0, width, height);
 
-        // Fő fehér kártya rajzolása (A ctx.beginPath() kritikus, különben hibásan festi ki a path-eket!)
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(50, 50, width - 100, height - 100, 8); // Modern lekerekítés
-        else ctx.rect(50, 50, width - 100, height - 100); // Fallback régi böngészőkre
+        if(ctx.roundRect) ctx.roundRect(50, 50, width - 100, height - 100, 8);
+        else ctx.rect(50, 50, width - 100, height - 100);
         ctx.fill();
 
-        // Brand Logo bal felül
         ctx.fillStyle = '#EA4C15';
         ctx.fillRect(50, 50, 140, 50); 
         ctx.fillStyle = '#FFFFFF';
@@ -1364,7 +1304,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         ctx.textAlign = 'center';
         ctx.fillText('MI KHK', 120, 84); 
 
-        // Főcím kiírása
         ctx.fillStyle = '#1A1A1A';
         ctx.font = '900 52px Arial, sans-serif';
         ctx.textAlign = 'center';
@@ -1374,7 +1313,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         ctx.font = '700 24px Arial, sans-serif';
         ctx.fillText('MENNYIBE KERÜL EGYETLEN LEKÉRDEZÉS?', width / 2, 215);
 
-        // Prompt / Kérdés kerete a Canvas-on
         const promptY = 280;
         ctx.fillStyle = '#F5F5F5';
         ctx.beginPath();
@@ -1382,17 +1320,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         else ctx.rect(100, promptY, width - 200, promptBoxHeight);
         ctx.fill();
         
-        // Narancssárga kiemelés a prompt doboz bal szélén
         ctx.fillStyle = '#EA4C15';
         ctx.fillRect(100, promptY, 8, promptBoxHeight);
 
-        // Nagy díszes idézőjel
         ctx.fillStyle = '#E5E7EB';
         ctx.font = '900 90px Georgia, serif';
         ctx.textAlign = 'left';
         ctx.fillText('"', 130, promptY + 85);
 
-        // Betördelt szöveg kiírása a vászonra soronként (a dinamikus magasság számítás alapján)
         ctx.fillStyle = '#333333';
         ctx.font = 'italic 30px Arial, sans-serif';
         wrappedPromptLines.forEach((line, i) => {
@@ -1401,18 +1336,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
         let currentY = promptY + promptBoxHeight + 60;
 
-        // Bővített Modell Információs Kapszula intelligens méretezéssel
         ctx.font = '700 18px Arial, sans-serif';
         let measuredTextWidth = ctx.measureText(infoText).width;
         
-        // Ha sok opciót választott a felhasználó és a szöveg túl hosszú a Canvas-hez képest, csökkentjük a betűméretet
         if (measuredTextWidth > 800) {
             ctx.font = '700 15px Arial, sans-serif';
             measuredTextWidth = ctx.measureText(infoText).width;
         }
         const capsuleWidth = measuredTextWidth + 60; 
 
-        // Kapszula fekete háttere
         ctx.fillStyle = '#1A1A1A';
         ctx.beginPath();
         if(ctx.roundRect) ctx.roundRect(100, currentY, capsuleWidth, 44, 4);
@@ -1423,7 +1355,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         ctx.textAlign = 'center';
         ctx.fillText(infoText, 100 + capsuleWidth / 2, currentY + 29);
 
-        // Fő Energia Lábnyom Eredmény kiírása Canvas-ra
         currentY += 120; 
         ctx.fillStyle = '#555555';
         ctx.textAlign = 'left';
@@ -1432,10 +1363,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
         currentY += 105;
         ctx.fillStyle = '#EA4C15'; 
-        ctx.font = '900 120px Arial, sans-serif';
-        ctx.fillText(`${totEnergy} Wh`, 95, currentY);
         
-        // 6 darab Hatás-kártya (Grid) megrajzolása 3x2-es rácsban
+        // Canvas méretezés extrém értékekhez a Lábnyom szövegre
+        ctx.font = '900 120px Arial, sans-serif';
+        if (ctx.measureText(totEnergy).width > 850) {
+            ctx.font = '900 95px Arial, sans-serif';
+        }
+        ctx.fillText(totEnergy, 95, currentY);
+        
         currentY += 80;
         const startX = 100;
         const cardW = 273; 
@@ -1443,45 +1378,48 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const gap = 30;
 
         metrics.forEach((m, i) => {
-            const col = i % 3; // Oszlop pozíció (0, 1 vagy 2)
-            const row = Math.floor(i / 3); // Sor pozíció (0 vagy 1)
+            const col = i % 3; 
+            const row = Math.floor(i / 3); 
             const x = startX + (col * (cardW + gap));
             const y = currentY + (row * (cardH + gap));
             
-            // Kártya háttere és kerete
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = m.bg || '#FFFFFF';
             ctx.beginPath();
             if(ctx.roundRect) ctx.roundRect(x, y, cardW, cardH, 4);
             else ctx.rect(x, y, cardW, cardH);
             ctx.fill();
-            ctx.strokeStyle = '#E0E0E0';
+            ctx.strokeStyle = m.border || '#E0E0E0';
             ctx.lineWidth = 2;
             ctx.stroke();
             
-            // Ikon háttere (szürke kör)
             ctx.fillStyle = '#F8FAFC';
             ctx.beginPath();
             ctx.arc(x + 55, y + 65, 28, 0, Math.PI * 2);
             ctx.fill();
 
-            // Rendszerszintű Emojik használata a rajzoláshoz
             ctx.font = '32px Arial, "Segoe UI Emoji", "Apple Color Emoji"';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#000000'; 
             ctx.fillText(m.icon, x + 55, y + 76);
             
-            // Értékek és feliratok (szövegek)
             ctx.textAlign = 'left';
             ctx.fillStyle = '#777777';
             ctx.font = '800 13px Arial, sans-serif';
             ctx.fillText(m.title.toUpperCase(), x + 100, y + 55);
             
             ctx.fillStyle = '#1A1A1A';
+            
+            // Kifolyás védelem: Dinamikus Kártyaszöveg Zsugorító mechanika
             ctx.font = '900 24px Arial, sans-serif';
+            if (ctx.measureText(m.val).width > 150) {
+                ctx.font = '900 20px Arial, sans-serif';
+            }
+            if (ctx.measureText(m.val).width > 165) {
+                ctx.font = '900 17px Arial, sans-serif';
+            }
             ctx.fillText(m.val, x + 100, y + 90);
         });
 
-        // Lábléc (Footer)
         const footerY = height - 75;
         ctx.textAlign = 'center';
         ctx.fillStyle = '#999999';
@@ -1492,25 +1430,24 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /**
-     * Letöltési mechanizmus: Kényszeríti a böngészőt, hogy töltse le a generált Canvas-t PNG képként.
+     * Letöltés indítása natívan a HTML5 a[download] képességével.
      */
     function triggerDownload(canvas) {
-        const imageURL = canvas.toDataURL('image/png'); // Base64 átalakítás
+        const imageURL = canvas.toDataURL('image/png'); 
         const downloadLink = document.createElement('a');
         downloadLink.href = imageURL;
         downloadLink.download = 'mikhk-mi-hatas.png';
         document.body.appendChild(downloadLink);
-        downloadLink.click(); // Láthatatlan kattintás szimulálása
-        document.body.removeChild(downloadLink); // Takarítás
+        downloadLink.click(); 
+        document.body.removeChild(downloadLink);
     }
 
-    // --- Eseménykezelő: "Mentés képként" gomb ---
+    // Export Gomb Logika
     downloadBtn.addEventListener('click', () => {
         const originalContent = downloadBtn.innerHTML;
-        downloadBtn.innerHTML = 'Készítés...'; // Vizuális visszajelzés a gomb felületén
+        downloadBtn.innerHTML = 'Készítés...'; 
         downloadBtn.disabled = true;
 
-        // A setTimeout(..., 100) engedi frissülni a DOM-ot (gomb szövegváltás) mielőtt a Canvas blokkolná a CPU szálat
         setTimeout(() => {
             try {
                 const canvas = createInfographicCanvas();
@@ -1519,13 +1456,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 console.error('Hiba:', error);
                 alert('Sajnos hiba történt a kép mentésekor.');
             } finally {
-                downloadBtn.innerHTML = originalContent; // Visszaállítjuk az eredeti feliratot
+                downloadBtn.innerHTML = originalContent; 
                 downloadBtn.disabled = false;
             }
         }, 100);
     });
 
-    // --- Eseménykezelő: Natív megosztás (Web Share API) okostelefonokhoz ---
+    // Megosztás Gomb Logika (Mobile Share API fallbackkel)
     shareBtn.addEventListener('click', async () => {
         const originalContent = shareBtn.innerHTML;
         shareBtn.innerHTML = 'Előkészítés...';
@@ -1533,25 +1470,20 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
         try {
             const canvas = createInfographicCanvas();
-            // Blob-bá (bináris fájllá) konvertáljuk a Canvas-t az operációs rendszer API-ja számára
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
                 
-                // Megvizsgáljuk, hogy az adott eszköz / böngésző képes-e fájlokat megosztani natívan
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
-                        // iOS Share Sheet vagy Android natív megosztó panel megnyitása
                         await navigator.share({
                             title: 'MI KHK Hatás Kalkulátor',
                             text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma!',
                             files: [file]
                         });
                     } catch (shareError) {
-                        // Ha a felhasználó kinyitja a megosztó menüt, majd elveti a műveletet (AbortError), nem írunk ki hibát.
                         if (shareError.name !== 'AbortError') console.error('Hiba:', shareError);
                     }
                 } else {
-                    // Fallback (B-terv) asztali böngészőknek, amik nem tudnak natívan képet megosztani (pl. Windows Chrome)
                     alert('A böngésződ nem támogatja a közvetlen megosztást. A képet letöltjük!');
                     triggerDownload(canvas);
                 }
@@ -1559,7 +1491,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 shareBtn.disabled = false;
             }, 'image/png');
         } catch (error) {
-            alert('Hiba történt a megosztás során.');
+            alert('Hiba történt.');
             shareBtn.innerHTML = originalContent;
             shareBtn.disabled = false;
         }
@@ -1567,70 +1499,54 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     // ==========================================================================
     // 4. MOBIL ÉRINTÉSKEZELÉS ÉS DINAMIKUS TOOLTIP LOGIKA
-    // A Tooltipek felnyílásának és bezárásának intelligens vezérlése (Z-indexszel egybeépítve).
+    // Megakadályozza, hogy a felugró infóablak kilógjon a képernyőről.
     // ==========================================================================
     
-    /**
-     * Határ-ellenőrző (Bounds Checker) a Tooltipekhez:
-     * Megakadályozza, hogy a felugró információs buborék (tooltip) kilógjon 
-     * az applikáció keretéből bal vagy jobb oldalon (ami mobilon levágott szöveget okozna).
-     */
     function checkTooltipBounds(badge) {
-        // Lekérjük az ikon (i gomb) pontos térbeli helyzetét a képernyőn
         const rect = badge.getBoundingClientRect();
-        // Lekérjük a fő widget (kalkulátor konténer) térbeli határait
         const container = document.getElementById('calculatorApp').getBoundingClientRect();
         
-        const tooltipMaxWidth = 210; // A CSS-ben max-width: 210px van beállítva
+        const tooltipMaxWidth = 210; 
         const halfWidth = tooltipMaxWidth / 2;
-        const badgeCenter = rect.left + (rect.width / 2); // Az (i) ikon közepe
+        const badgeCenter = rect.left + (rect.width / 2); 
         
-        // COLLISION DETECTION (Ütközésvizsgálat):
-        // Ha a tooltip jobb széle kilógna a főkalkulátor dobozából
+        // Ha kilóg jobb oldalt -> balra toljuk
         if (badgeCenter + halfWidth > container.right - 10) {
-            // Eltoljuk a tooltipet balra (--tt-x css változó frissítése)
             badge.style.setProperty('--tt-x', '-85%');
-            
-        // Ha a tooltip bal széle kilógna a főkalkulátor dobozából
+        // Ha kilóg bal oldalt -> jobbra toljuk
         } else if (badgeCenter - halfWidth < container.left + 10) {
-            // Eltoljuk a tooltipet jobbra
             badge.style.setProperty('--tt-x', '-15%');
-            
-        // Normál állapot (van elég hely), hagyjuk tökéletesen középre zárva
+        // Kényelmesen elfér -> középen marad
         } else {
             badge.style.setProperty('--tt-x', '-50%');
         }
     }
 
-    // Asztali nézet (Egérhasználat): Hover (föléhúzás) esetén is lefut a szélek ellenőrzése
+    // Hover esemény asztali gépekre
     document.querySelectorAll('.info-badge').forEach(badge => {
         badge.addEventListener('mouseenter', () => checkTooltipBounds(badge));
     });
 
-    // Mobil nézet (Érintés/Kattintás) globális eseménykezelője
+    // Globális kattintásfigyelő (mobil érintésre és tooltip bezárásra)
     document.addEventListener('click', function(e) {
-        // Megnézzük, hogy kattintottunk-e egy tooltip gombra
         const clickedBadge = e.target.closest('.info-badge');
         const allBadges = document.querySelectorAll('.info-badge');
         const allCards = document.querySelectorAll('.metric-card');
 
         if (clickedBadge) {
-            // Ha rányomott egy badge-re, ELŐSZÖR bezárjuk az összes többit 
-            // és levesszük a kártyák z-indexét (visszaállítjuk az alapállapotot)
+            // Bezárjuk a többit
             const wasActive = clickedBadge.classList.contains('active-tip');
             allBadges.forEach(badge => badge.classList.remove('active-tip'));
             allCards.forEach(card => card.classList.remove('active-card'));
             
-            // Majd bekapcsoljuk a VÁLASZTOTTAT (ha eddig nem volt aktív),
-            // és a hozzá tartozó kártyát (Z-index: 10) kiemeljük minden más elem fölé.
+            // Kinyitjuk az aktuálisat (és adunk neki Z-index prioritást)
             if (!wasActive) {
                 clickedBadge.classList.add('active-tip');
                 clickedBadge.closest('.metric-card').classList.add('active-card');
-                checkTooltipBounds(clickedBadge); // Leellenőrizzük, hogy kifér-e
+                checkTooltipBounds(clickedBadge); 
             }
         } else {
-            // Ha a képernyőn bárhova MÁSHOVA böktünk, minden tooltip bezárul, 
-            // az UI teljesen letisztul.
+            // Ha máshova kattintott, mindent bezárunk
             allBadges.forEach(badge => badge.classList.remove('active-tip'));
             allCards.forEach(card => card.classList.remove('active-card'));
         }
