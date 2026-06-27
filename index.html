@@ -426,12 +426,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         z-index: 1;
     }
     
-    /* Hover/Active esetén a kártyát előrehozzuk (z-index: 10), hogy a tooltipje ne lógjon be más kártyák alá */
-    .metric-card:hover, .metric-card.active-card { border-color: #B0B0B0; z-index: 10; }
+    /* Csak aktív Tooltip esetén hozzuk a kártyát előre (z-index: 10), hogy a lebegő ablak ne lógjon be más kártyák alá.
+       (A sima kártya-hover effektust kivettük, mivel a kártya maga nem kattintható) */
+    .metric-card.active-card { border-color: #B0B0B0; z-index: 10; }
 
     /* Különleges színkiemelés a "Szerver Hűtés" (Víz) kártyának */
     .metric-card.cooling-card { background-color: #F4FAFF; border-color: #E1F0FA; }
-    .metric-card.cooling-card:hover, .metric-card.cooling-card.active-card { border-color: #B0D4F0; }
+    .metric-card.cooling-card.active-card { border-color: #B0D4F0; }
     
     .metric-icon { 
         font-size: 1.75rem; background: #F8FAFC; width: 48px; height: 48px;
@@ -457,7 +458,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         --tt-x: -50%;
     }
 
-    .info-badge:hover { background-color: var(--brand-orange); color: #FFFFFF; }
+    /* Az (i) ikon továbbra is narancsra vált, ha konkrétan rajta van az egér */
+    .info-badge:hover, .info-badge.active-tip { background-color: var(--brand-orange); color: #FFFFFF; }
 
     /* Maga a fekete szövegbuborék */
     .info-badge::after {
@@ -478,8 +480,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease; pointer-events: none;
     }
 
-    /* Megjelenítés Hover (Asztal) vagy rákoppintás (Mobil: .active-tip osztályon át) esetén */
-    .info-badge:hover::after, .info-badge:hover::before, .info-badge.active-tip::after, .info-badge.active-tip::before {
+    /* Megjelenítés KIZÁRÓLAG a JS által rárakott .active-tip osztály esetén (az összeakadás elkerülése végett) */
+    .info-badge.active-tip::after, .info-badge.active-tip::before {
         opacity: 1; visibility: visible;
     }
 
@@ -582,7 +584,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 <summary class="media-summary">
                     <span style="display: flex; align-items: center; gap: 8px;">
                         <span id="contextSummaryIcon" style="font-size: 1.1rem;">📄</span>
-                        <span id="contextSummaryText">Bemenet: Háttéranyag (Opcionális)</span>
+                        <span id="contextSummaryText">Bemenet: Nincs csatolt anyag</span>
                     </span>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
@@ -874,11 +876,37 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Nincs API hívás, a környezeti terhelést determinisztikus matekkal becsüljük.
     // ==========================================================================
 
+    // Segédfüggvény a JavaScript szál aszinkron "altatására" animációkhoz (Kiemelve előre, mert többször használjuk)
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     // GLOBÁLIS ÁLLAPOT (State Snapshot) AZ EXPORTHOZ
     // Ide mentjük a legutolsó sikeres számítás eredményeit, hogy az exportáláskor
     // garantáltan a pontos, fagyasztott adatokat használjuk (függetlenül attól, 
     // ha a user közben átírná a promptot). JAVÍTÁS #2.
     let lastCalculatedState = null;
+    let preRenderedExportFile = null; // A háttérben előre legenerált GIF tárolója
+    let isGeneratingGif = false;      // Megakadályozza a párhuzamos generálást
+
+    function resetExportState() {
+        preRenderedExportFile = null;
+        isGeneratingGif = false;
+        
+        const shareBtn = document.getElementById('shareBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const gifWarning = document.getElementById('gifWarning');
+        
+        if (shareBtn) {
+            shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Megosztás`;
+            shareBtn.style.backgroundColor = '';
+            shareBtn.style.color = '';
+            shareBtn.style.borderColor = '';
+            shareBtn.disabled = false;
+        }
+        
+        if (downloadBtn) {
+            downloadBtn.disabled = false;
+        }
+    }
 
     // Előre definiált bemutató szcenáriók (A dobókocka gomb ezt az array-t hívja be)
     const PRESET_SCENARIOS = [
@@ -1046,9 +1074,10 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     let defaultPrompt = ""; 
 
     // Média kiválasztás logika: A lenyíló HTML5 details panel okos bezárása kattintás után,
-    // valamint a fő felirat frissítése a kiválasztott opció nevére.
+    // JAVÍTÁS 4: 'change' helyett 'click' eseményt figyelünk. Így ha a felhasználó
+    // olyan opcióra kattint, ami már ki volt választva, a panel akkor is összecsukódik!
     mediaInputs.forEach(input => {
-        input.addEventListener('change', (e) => {
+        input.addEventListener('click', (e) => {
             if (e.target.checked) {
                 const card = e.target.nextElementSibling;
                 const emoji = card.querySelector('.media-emoji').textContent;
@@ -1057,19 +1086,21 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 
                 summaryIcon.textContent = emoji;
                 summaryText.textContent = `Kimenet: ${title} (${desc.replace('+ ', '+')})`;
-                mediaSelectorContainer.removeAttribute('open'); // Zárja be az harmonikát
+                mediaSelectorContainer.removeAttribute('open'); // Zárja be az harmonikát mindenképp
             }
         });
     });
 
     // Kontextus kiválasztás logika: Hasonló a fentihez, RAG opciók kezelése.
+    // JAVÍTÁS 4: Itt is 'click' eseményre cserélve a 'change'-et az azonnali bezárásért.
     contextInputs.forEach(input => {
-        input.addEventListener('change', (e) => {
+        input.addEventListener('click', (e) => {
             if (e.target.checked) {
                 const val = e.target.value;
                 if (val === 'none') {
                     contextSummaryIcon.textContent = '📄';
-                    contextSummaryText.textContent = 'Bemenet: Háttéranyag (Opcionális)';
+                    // JAVÍTÁS 5: Egyértelműbb szövegezés, ha nincs kiválasztva semmi
+                    contextSummaryText.textContent = 'Bemenet: Nincs csatolt anyag';
                 } else {
                     const card = e.target.nextElementSibling;
                     const emoji = card.querySelector('.media-emoji').textContent;
@@ -1099,7 +1130,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             
             document.querySelector('input[name="contextType"][value="none"]').checked = true;
             contextSummaryIcon.textContent = '📄';
-            contextSummaryText.textContent = 'Bemenet: Háttéranyag (Opcionális)';
+            // JAVÍTÁS 5: Itt is frissített szöveg a fókuszáláskori törlésnél
+            contextSummaryText.textContent = 'Bemenet: Nincs csatolt anyag';
         }
     });
 
@@ -1116,11 +1148,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         
         const mediaRadio = document.querySelector(`input[name="mediaType"][value="${scenario.media}"]`);
         mediaRadio.checked = true;
-        mediaRadio.dispatchEvent(new Event('change')); // UI frissítés kikényszerítése
+        // Mivel átálltunk click eventre, a JS-ből való kattintás kiváltja a felirat frissítését
+        mediaRadio.click(); 
         
         const contextRadio = document.querySelector(`input[name="contextType"][value="${scenario.context}"]`);
         contextRadio.checked = true;
-        contextRadio.dispatchEvent(new Event('change')); 
+        contextRadio.click(); 
         
         charCountDisplay.textContent = aiPrompt.value.length;
     }
@@ -1129,9 +1162,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     initRandomScenario();
     // Dobókocka esemény
     randomBtn.addEventListener('click', initRandomScenario);
-
-    // Segédfüggvény a JavaScript szál aszinkron "altatására" animációkhoz
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     // BIZTONSÁGOS AUTO-SCROLL FUNKCIÓ (Mobil "yo-yo" ugrálás megelőzésére)
     // Csak lefelé, abszolút pixelpozícióba görget, elkerülve az elem-szintű fókuszugrálást.
@@ -1170,6 +1200,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         if (text.length === 0) return; 
 
         exportSection.style.display = 'none'; 
+        
+        // Visszaállítjuk alapra az export szekciót (PNG formátumra, cache törlése)
+        const formatPngBtn = document.getElementById('formatPng');
+        if (formatPngBtn) formatPngBtn.click();
+        resetExportState(); 
 
         // Kiválasztott értékek kiolvasása a formból
         const selectedModel = document.querySelector('input[name="aiModel"]:checked').value;
@@ -1351,10 +1386,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     charCountDisplay.textContent = aiPrompt.value.length;
 
     // ==========================================================================
-    // 3. INFOGRAFIKA EXPORTÁLÁS (CANVAS) ÉS ANIMÁLT GIF KÓDOLÓ MOTOR
-    // Mivel a DOM (HTML) egy az egyben nem exportálható képként, egy belső 
-    // HTML5 Canvas vásznat használunk a grafika milliméterpontos újrarajzolására.
-    // Ebből nyerjük ki a statikus PNG-t, és az animált GIF kockákat is.
+    // EXPORT GOMBOK, FORMÁTUM KAPCSOLÓ ÉS HÁTTÉR-GENERÁLÁS
     // ==========================================================================
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
@@ -1365,20 +1397,68 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     // Formátum Választó (Kép vs GIF) Toggle logika a frontend gombokhoz
     formatBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
+            // Ne csináljon semmit, ha már ez az aktív, vagy ha épp generál
+            if (e.target.classList.contains('active') || isGeneratingGif) return;
+            
             formatBtns.forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentExportFormat = e.target.getAttribute('data-format');
             
-            // Ha a GIF-et kéri a user, feldobjuk a figyelmeztetést a renderelési időről.
+            resetExportState(); 
+            
             if (currentExportFormat === 'gif') {
+                if (!lastCalculatedState) return;
+                
+                isGeneratingGif = true;
+                
+                // Letiltjuk a gombokat és indítjuk az azonnali háttér-generálást
+                downloadBtn.disabled = true;
+                shareBtn.disabled = true;
+                
                 gifWarning.style.display = 'block';
+                gifWarning.style.color = 'var(--brand-orange)';
+                gifWarning.innerText = '⏳ GIF előkészítése a háttérben: 0%...';
+                
+                // UI DÖCCENÉS GÁTLÓ: Hagyunk 50 milliszekundumot a böngészőnek arra,
+                // hogy VIZUÁLISAN is kirajzolja a gombok szürkülését és a fenti "⏳ GIF..." szöveget, 
+                // még MIELŐTT rászabadítjuk a CPU-t a nehéz Canvas rajzolásra.
+                await sleep(50);
+                
+                try {
+                    const blob = await generateGifBlob((p) => {
+                        gifWarning.innerText = `⏳ GIF előkészítése a háttérben: ${Math.round(p * 100)}%...`;
+                    });
+                    
+                    preRenderedExportFile = new File([blob], 'mikhk-mi-hatas.gif', { type: 'image/gif' });
+                    
+                    gifWarning.style.color = '#2e7d32'; // Sötétzöld siker üzenet
+                    gifWarning.innerText = '✅ GIF sikeresen előkészítve! Mehet az instant export.';
+                    
+                    // Gombok újra engedélyezése
+                    downloadBtn.disabled = false;
+                    shareBtn.disabled = false;
+                } catch (error) {
+                    console.error('GIF generálási hiba:', error);
+                    gifWarning.style.color = '#D13E0E'; // Piros hiba üzenet
+                    gifWarning.innerText = '❌ Hiba történt a GIF generálása közben.';
+                    downloadBtn.disabled = false;
+                    shareBtn.disabled = false;
+                } finally {
+                    isGeneratingGif = false;
+                }
             } else {
                 gifWarning.style.display = 'none';
             }
         });
     });
     
+    // ==========================================================================
+    // 3. INFOGRAFIKA EXPORTÁLÁS (CANVAS) MATEMATIKA ÉS RAJZOLÁS
+    // Mivel a DOM (HTML) egy az egyben nem exportálható képként, egy belső 
+    // HTML5 Canvas vásznat használunk a grafika milliméterpontos újrarajzolására.
+    // ==========================================================================
+
     /**
      * TEXT WRAPPING MATEMATIKA A CANVAS-HEZ
      * Mivel a HTML5 Canvas `fillText` parancsa nem tud automatikusan sort törni, ez a függvény
@@ -1779,6 +1859,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
                     // 4. Lépés: Képkocka beküldése a memóriába a GIF kompresszornak
                     gif.addFrame(scaledCanvas, { copy: true, delay: currentDelay });
+                    
+                    // UI DÖCCENÉS GÁTLÓ: Megakadályozzuk a főszál (Main Thread) teljes leblokkolását!
+                    // Minden 5. képkocka megrajzolása után adunk 5 milliszekundum "lélegzetvételnyi" időt
+                    // a böngészőnek. Így a felület frissülni tud, elkerülve a teljes kifagyást rajzolás közben.
+                    if (i % 5 === 0) await sleep(5);
                 }
 
                 // Visszajelzés a gomb felületére százalékosan
@@ -1803,29 +1888,23 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     downloadBtn.addEventListener('click', async () => {
         const originalContent = downloadBtn.innerHTML;
         downloadBtn.disabled = true; // Duplakattintás védelem
-        
-        // JAVÍTÁS 3: Teljes widget felület lezárása és halványítása generálás alatt
-        calculatorApp.style.pointerEvents = 'none';
-        calculatorApp.style.opacity = '0.7';
 
         try {
             if (currentExportFormat === 'png') {
+                // A PNG generálása a gombnyomás pillanatában történik (mivel gyors)
+                calculatorApp.style.pointerEvents = 'none';
+                calculatorApp.style.opacity = '0.7';
                 downloadBtn.innerHTML = 'Készítés...'; 
-                await sleep(50); // Apró UI altatás, hogy a felirat meg tudjon jelenni a gombon a befagyás előtt
+                await sleep(50); 
                 const canvas = createInfographicCanvas();
                 if(canvas) {
                     const imageURL = canvas.toDataURL('image/png');
                     triggerDownload(imageURL, 'mikhk-mi-hatas.png');
                 }
             } 
-            else if (currentExportFormat === 'gif') {
-                downloadBtn.innerHTML = 'Előkészítés...';
-                // Átadjuk a progressCallback függvényt, ami valós időben frissíti a gomb szövegét (pl "GIF: 34%...")
-                const blob = await generateGifBlob((p) => {
-                    downloadBtn.innerHTML = `GIF: ${Math.round(p * 100)}%...`;
-                });
-                const blobUrl = URL.createObjectURL(blob);
-                triggerDownload(blobUrl, 'mikhk-mi-hatas.gif');
+            else if (currentExportFormat === 'gif' && preRenderedExportFile) {
+                // A GIF már le van generálva a háttérben, azonnali letöltés!
+                triggerDownload(URL.createObjectURL(preRenderedExportFile), preRenderedExportFile.name);
             }
         } catch (error) {
             console.error('Hiba a mentés során:', error);
@@ -1833,92 +1912,71 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         } finally {
             downloadBtn.innerHTML = originalContent; 
             downloadBtn.disabled = false;
-            
-            // JAVÍTÁS 3: Teljes widget felület interaktivitásának visszaadása
             calculatorApp.style.pointerEvents = '';
             calculatorApp.style.opacity = '';
         }
     });
 
     // ==========================================================================
-    // DINAMIKUS MEGOSZTÁS GOMB LOGIKA (Web Share API biztonsági hálóval iOS-re)
+    // DINAMIKUS MEGOSZTÁS GOMB LOGIKA (Web Share API Safari Timeout Javítással)
     // ==========================================================================
     shareBtn.addEventListener('click', async () => {
         const originalContent = shareBtn.innerHTML;
         shareBtn.disabled = true;
-        
-        // JAVÍTÁS 3: Teljes widget felület lezárása és halványítása generálás alatt
-        calculatorApp.style.pointerEvents = 'none';
-        calculatorApp.style.opacity = '0.7';
+        let shareFile = null;
 
         try {
-            let fileBlob;
-            let filename;
-            let mimeType;
-
-            // Formátumtól függően előkészítjük a Blobot (Memória adatcsomagot)
             if (currentExportFormat === 'png') {
+                calculatorApp.style.pointerEvents = 'none';
+                calculatorApp.style.opacity = '0.7';
                 shareBtn.innerHTML = 'Előkészítés...';
                 await sleep(50);
                 const canvas = createInfographicCanvas();
                 if(!canvas) throw new Error("Canvas készítése sikertelen.");
-                fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                filename = 'mikhk-mi-hatas.png';
-                mimeType = 'image/png';
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                shareFile = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
             } 
-            else if (currentExportFormat === 'gif') {
-                shareBtn.innerHTML = 'Előkészítés...';
-                fileBlob = await generateGifBlob((p) => {
-                    shareBtn.innerHTML = `GIF: ${Math.round(p * 100)}%...`;
-                });
-                filename = 'mikhk-mi-hatas.gif';
-                mimeType = 'image/gif';
+            else if (currentExportFormat === 'gif' && preRenderedExportFile) {
+                // INSTANT MEGOSZTÁS a már előre legenerált háttér fájlból
+                shareFile = preRenderedExportFile;
+            } else {
+                throw new Error("Hiányzó export fájl.");
             }
 
-            // Web-kompatibilis File objektum felépítése
-            const file = new File([fileBlob], filename, { type: mimeType });
-            
-            // Ha a böngésző támogatja a fájlmegosztást (Natív iOS Share / Android Share)
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Mivel a GIF esetén itt már kész fájlunk van, a navigator.share AZONNAL meghívódik,
+            // így a Safari nem dob hibát az aszinkron késleltetés miatt!
+            if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
                 await navigator.share({
                     title: 'MI KHK Hatás Kalkulátor',
                     text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma!',
-                    files: [file]
+                    files: [shareFile]
                 });
             } else {
-                // Ha desktop gép, vagy nem támogatott böngésző, automatikusan Letöltjük a fájlt.
                 alert('A böngésződ nem támogatja a közvetlen megosztást. A fájlt automatikusan letöltjük!');
-                triggerDownload(URL.createObjectURL(fileBlob), filename);
+                triggerDownload(URL.createObjectURL(shareFile), shareFile.name);
             }
 
         } catch (error) {
-            // FALLBACK BIZTONSÁGI HÁLÓ (Kritikus!)
-            // Az iOS Safari sokszor elutasítja a navigator.share() hívást "AbortError" hivatkozással,
-            // ha a felhasználó kattintása és a share() API hívás között túl sok idő telt el. 
-            // Mivel a GIF renderelés hosszú (akár 3-10 másodperc), ez a blokk elkapja a hibát, 
-            // és a már fáradságosan kirenderelt GIF fájlt letöltésként megmenti a usernek!
             if (error.name !== 'AbortError') {
                 console.error('Megosztás Hiba:', error);
                 alert('A mobil böngésző korlátozása miatt a közvetlen megosztás megszakadt. A fájlt biztonsági okokból letöltjük!');
-                
-                // Fallback (B terv) indítása: Mivel a Blob generálása sikeres volt, csak a megosztó panel dobta el az API-t.
-                if (fileBlob) {
-                    triggerDownload(URL.createObjectURL(fileBlob), filename);
+                if (shareFile) {
+                    triggerDownload(URL.createObjectURL(shareFile), shareFile.name);
                 }
             }
         } finally {
             shareBtn.innerHTML = originalContent;
             shareBtn.disabled = false;
-            
-            // JAVÍTÁS 3: Teljes widget felület interaktivitásának visszaadása
             calculatorApp.style.pointerEvents = '';
             calculatorApp.style.opacity = '';
         }
     });
 
     // ==========================================================================
-    // 5. MOBIL ÉRINTÉSKEZELÉS ÉS KIFOLYÁSGÁTLÓ CSS TOOLTIP LOGIKA
-    // Megakadályozza, hogy a felugró infóablak kilógjon a képernyő szélén.
+    // 5. MOBIL ÉRINTÉSKEZELÉS ÉS EXKLUZÍV TOOLTIP LOGIKA
+    // Megakadályozza a kilógást, és garantálja, hogy egyszerre csak egy tooltip
+    // lehessen aktív (akár egeres hover, akár mobilos érintés történik).
+    // A téglalapok maguk nem kattinthatók, csak az (i) ikonok reagálnak.
     // ==========================================================================
     
     function checkTooltipBounds(badge) {
@@ -1942,35 +2000,47 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         }
     }
 
-    // Hover esemény asztali gépekre (Egér)
-    document.querySelectorAll('.info-badge').forEach(badge => {
-        badge.addEventListener('mouseenter', () => checkTooltipBounds(badge));
+    const allBadges = document.querySelectorAll('.info-badge');
+    const allCards = document.querySelectorAll('.metric-card');
+
+    // Segédfüggvény: Bezárja az összes nyitott tooltipet és visszaállítja a kártyák z-indexét
+    function closeAllTooltips() {
+        allBadges.forEach(b => b.classList.remove('active-tip'));
+        allCards.forEach(c => c.classList.remove('active-card'));
+    }
+
+    // Segédfüggvény: Megnyit egy adott tooltipet, és előtérbe hozza a kártyáját
+    function openTooltip(badge) {
+        closeAllTooltips(); // Először mindent bezárunk (Exkluzivitás biztosítása)
+        badge.classList.add('active-tip');
+        badge.closest('.metric-card').classList.add('active-card');
+        checkTooltipBounds(badge);
+    }
+
+    // Eseménykezelők hozzárendelése minden egyes (i) ikonhoz
+    allBadges.forEach(badge => {
+        // Asztali: Ha az egeret ráhúzza az ikonra, megnyílik
+        badge.addEventListener('mouseenter', () => openTooltip(badge));
+        
+        // Asztali: Ha lehúzza róla az egeret, bezáródik
+        badge.addEventListener('mouseleave', () => closeAllTooltips());
+        
+        // Mobil/Kattintás: Ha rábök az ikonra
+        badge.addEventListener('click', (e) => {
+            e.stopPropagation(); // Megakadályozza, hogy a globális click azonnal bezárja
+            // Mobilon a hover nem létezik igazán, a click fogja kinyitni
+            openTooltip(badge);
+        });
     });
 
-    // Globális kattintásfigyelő (Mobil érintésre optimializálva, és a nyitott tooltip bezárására bárhová kattintva)
+    // Globális kattintásfigyelő: Ha bárhova máshova kattint a felhasználó a képernyőn,
+    // bezárjuk a nyitva maradt tooltipet (tipikus mobil "escape" funkció).
     document.addEventListener('click', function(e) {
-        const clickedBadge = e.target.closest('.info-badge');
-        const allBadges = document.querySelectorAll('.info-badge');
-        const allCards = document.querySelectorAll('.metric-card');
-
-        if (clickedBadge) {
-            // Először minden másikat bezárunk (Egyidőben csak egy lehet nyitva)
-            const wasActive = clickedBadge.classList.contains('active-tip');
-            allBadges.forEach(badge => badge.classList.remove('active-tip'));
-            allCards.forEach(card => card.classList.remove('active-card'));
-            
-            // Kinyitjuk az aktuálisat (és adunk a szülőkártyának egy Z-index prioritást, hogy felülre kerüljön)
-            if (!wasActive) {
-                clickedBadge.classList.add('active-tip');
-                clickedBadge.closest('.metric-card').classList.add('active-card');
-                checkTooltipBounds(clickedBadge); 
-            }
-        } else {
-            // Ha máshova kattintott az oldalon (üres helyre), mindent bezárunk (Escape funkció)
-            allBadges.forEach(badge => badge.classList.remove('active-tip'));
-            allCards.forEach(card => card.classList.remove('active-card'));
+        if (!e.target.closest('.info-badge')) {
+            closeAllTooltips();
         }
     });
+
 </script>
 
 </body>
