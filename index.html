@@ -64,55 +64,65 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MI KHK - MI Környezeti Hatás Kalkulátor</title>
+
+<!-- ==========================================================================
+     KÜLSŐ FÜGGŐSÉGEK (CDN)
+     GIF.js: A HTML5 Canvas tartalmának kliens-oldali (böngészőben történő) 
+             GIF fájllá kódolásához szükséges könyvtár.
+     ========================================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
 <style>
     /* ==========================================================================
-       1. CSS VÁLTOZÓK ÉS ALAPBEÁLLÍTÁSOK (Márkaarculat)
-       Ide gyűjtöttük a színeket, így később egy helyen könnyen módosítható 
-       az egész applikáció színvilága (pl. dark mode implementálása esetén).
+       1. CSS VÁLTOZÓK (DESIGN TOKENS) ÉS ALAPBEÁLLÍTÁSOK
+       A központi paletta biztosítja, hogy a színek egységesek maradjanak.
+       Később könnyen bővíthető pl. egy @media (prefers-color-scheme: dark) blokkal.
        ========================================================================== */
     :root {
-        --brand-orange: #EA4C15;         /* Fő márka szín (Gombok, ikonok, kiemelések) */
-        --brand-orange-hover: #D13E0E;   /* Fő márka szín hover állapota */
-        --brand-black: #1E1E1E;          /* Fejléc és sötét elemek háttere */
-        --brand-dark-gray: #333333;      /* Sötétszürke szövegek */
-        --bg-color: #ffffff;             /* App fő háttere */
-        --card-bg: #ffffff;              /* Kártyák háttere */
-        --text-main: #1A1A1A;            /* Fő szövegszín */
-        --text-muted: #555555;           /* Másodlagos (halványabb) szövegek */
-        --border-color: #E0E0E0;         /* Általános keretszín */
-        --input-bg: #F7F7F7;             /* Beviteli mezők háttere */
-        --metric-bg: #FFFFFF;            /* Metrika kártyák háttere */
-        --metric-border: #E5E5E5;        /* Metrika kártyák kerete */
-        --accent-bg: #FEF3F0;            /* Kijelölt állapot háttere (Narancs halványan) */
+        --brand-orange: #EA4C15;         /* Fő arculati szín (Gombok, ikonok, kiemelések, diagramok) */
+        --brand-orange-hover: #D13E0E;   /* Interakció (hover/active) állapot a fő színhez */
+        --brand-black: #1E1E1E;          /* Fejléc, kapszulák és terminál háttere */
+        --brand-dark-gray: #333333;      /* Erős kontrasztú, sötétszürke szövegek */
+        --bg-color: #ffffff;             /* Magának a widget kártyának a háttere */
+        --card-bg: #ffffff;              /* Belső, kisebb kártyák háttere */
+        --text-main: #1A1A1A;            /* Elsődleges olvasószöveg színe */
+        --text-muted: #555555;           /* Másodlagos (halványabb) leírások, metaadatok */
+        --border-color: #E0E0E0;         /* Általános finom keretszín (inputok, panelek) */
+        --input-bg: #F7F7F7;             /* Beviteli mezők finom szürke háttere */
+        --metric-bg: #FFFFFF;            /* Az alsó 6 fizikai metrika kártyájának háttere */
+        --metric-border: #E5E5E5;        /* Metrika kártyák határoló kerete */
+        --accent-bg: #FEF3F0;            /* Kijelölt rádiógombok/kártyák lágy narancs háttere */
     }
 
-    /* Alapértelmezett böngésző reset és dobozmodell */
+    /* Böngészőfüggetlen dobozmodell (minden elem méretébe beletartozik a padding és a border) */
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Az oldal testének alapformázása. Szándékosan világosszürke, hogy a widget kiugorjon. */
     body {
         font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-        background-color: #F0F0F0; /* Diszkrét háttér, ami kiemeli a widgetet */
+        background-color: #F0F0F0;
         color: var(--text-main);
         line-height: 1.6;
-        -webkit-font-smoothing: antialiased;
+        -webkit-font-smoothing: antialiased; /* Jobb betűsimítás Mac/iOS eszközökön */
         padding: 2rem 1rem;
     }
 
     /* ==========================================================================
-       2. FŐ KONTÉNER ÉS TIPOGRÁFIA
-       A teljes widgetet egy korlátozott szélességű, letisztult "kártyába" zárjuk.
+       2. WIDGET KONTÉNER ÉS TIPOGRÁFIA
+       Ez fogja össze a teljes alkalmazást. Korlátozott szélességű (740px), 
+       hogy cikkekbe ágyazva is jól mutasson, de mobilon 100%-ra zsugorodik.
        ========================================================================== */
     .env-calculator {
         max-width: 740px;
         margin: 0 auto;
         background: var(--bg-color);
         border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Lágy árnyék a kiemeléshez */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Lágy árnyék a térbeliségért */
         border: 1px solid var(--border-color);
-        overflow: hidden; /* Biztosítja, hogy a tartalom ne lógjon le a kerekített sarkokról */
+        overflow: hidden; /* Biztosítja, hogy a belső tartalmak ne lógjanak le a sarkoknál */
     }
 
-    /* Márka fejléc stílusai */
+    /* Márka fejléc (Fekete sáv narancs logóval) */
     .brand-header {
         background-color: var(--brand-black);
         padding: 1rem 1.5rem;
@@ -142,10 +152,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     .calc-content { padding: 2rem; }
+    
+    /* Főcímek és alcímek */
     .app-title { font-size: 1.8rem; font-weight: 800; text-align: left; margin-bottom: 0.75rem; color: var(--text-main); line-height: 1.2; }
     .app-description { font-size: 1rem; color: var(--text-muted); text-align: left; margin-bottom: 2rem; font-weight: 400; }
 
-    /* Szekció címkék (1. Bemenet, 2. Kimenet) a vizuális hierarchiához */
+    /* UI Szekciók elválasztó címkéi (pl. "1. Bemenet", "2. Kimenet") */
     .section-label {
         font-size: 0.85rem;
         font-weight: bold;
@@ -156,8 +168,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /* ==========================================================================
-       3. PROMPT BEVITELI MEZŐ ÉS CSATOLMÁNY (BEMENET SZEKCIÓ)
-       Fókusz esetén a konténer fénylő narancssárga keretet kap.
+       3. PROMPT BEVITELI MEZŐ (BEMENET SZEKCIÓ)
+       Okos fókuszkezeléssel: Nem a textarea, hanem a szülő div kap stílust,
+       hogy a csatolmányokkal együtt egy koherens, fénylő "dobozt" alkosson.
        ========================================================================== */
     .chat-input-wrapper {
         background: var(--input-bg);
@@ -169,7 +182,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         margin-bottom: 1.5rem;
     }
 
-    /* Vizuális fókuszálás trükk: A div kapja meg az aktív keretet a textarea helyett */
+    /* Pseudo-class hack: Ha bármi a div-en belül fókuszt kap, a div színeződik */
     .chat-input-wrapper:focus-within {
         border-color: var(--brand-orange);
         box-shadow: 0 0 0 2px rgba(234, 76, 21, 0.1);
@@ -183,11 +196,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         font-family: inherit;
         font-size: 1.05rem;
         color: var(--text-main);
-        resize: vertical;
-        outline: none; /* Kikapcsoljuk a natív böngészős fókuszt */
+        resize: vertical; /* Csak függőlegesen nyújtható */
+        outline: none; /* Kikapcsoljuk az alap böngészős kék fókuszt */
     }
 
-    /* A szövegdobozba ágyazott "csatolmány" (Háttéranyag RAG) stílusai */
+    /* A szövegdobozon belülre ágyazott RAG (háttéranyag) választó stílusai */
     .context-in-input {
         margin: 0.5rem 0 0 0;
         border: none;
@@ -195,14 +208,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         background: transparent;
         border-radius: 0;
     }
-    .context-in-input .media-summary {
-        padding: 0.75rem 0.5rem 0.25rem 0.5rem;
-        font-size: 0.85rem;
-    }
-    .context-in-input .media-details-content {
-        padding: 0.5rem 0.5rem 0.25rem 0.5rem;
-    }
-    .context-in-input .media-card { background: #FFFFFF; } /* Hogy kitűnjön a szürke beviteli háttérből */
+    .context-in-input .media-summary { padding: 0.75rem 0.5rem 0.25rem 0.5rem; font-size: 0.85rem; }
+    .context-in-input .media-details-content { padding: 0.5rem 0.5rem 0.25rem 0.5rem; }
+    .context-in-input .media-card { background: #FFFFFF; } /* Kiemelkedik a szürke input háttérből */
 
     .input-bottom-row {
         display: flex;
@@ -215,7 +223,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     .char-count { font-size: 0.8rem; color: #888; font-weight: bold; }
 
-    /* Fő számítás gomb stílusai */
+    /* ==========================================================================
+       4. AKCIÓ GOMBOK (Számítás és Kocka)
+       ========================================================================== */
     button.send-btn {
         background-color: var(--brand-orange);
         color: white;
@@ -236,7 +246,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     button.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     button.send-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
 
-    /* Dobókocka gomb (Véletlenszerű szcenárió generáló) */
+    /* Véletlenszerű Prompt Generáló (Dobókocka) */
     .random-btn {
         background-color: transparent;
         border: 1px solid var(--border-color);
@@ -249,15 +259,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         justify-content: center;
         transition: all 0.2s;
     }
-    .random-btn:hover {
-        background-color: #EAEAEA;
-        border-color: #B0B0B0;
-    }
+    .random-btn:hover { background-color: #EAEAEA; border-color: #B0B0B0; }
 
     /* ==========================================================================
-       4. MODELL, MÉDIA ÉS KONTEXTUS VÁLASZTÓK (Rádiógombok elrejtése)
-       A natív HTML rádiógombokat elrejtjük (display: none), és a <label> taget
-       formázzuk kattintható dobozzá. Ez modern, app-szerű UI-t eredményez.
+       5. REJTETT RÁDIÓGOMBOK (Model & Media választók)
+       A HTML <input type="radio"> elemeket vizuálisan elrejtjük, és helyette
+       a <label> taget alakítjuk kattintható, modern kártyává.
        ========================================================================== */
     .model-selector {
         display: flex;
@@ -267,7 +274,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     .radio-label { flex: 1; cursor: pointer; min-width: 0; }
-    .radio-label input[type="radio"] { display: none; }
+    .radio-label input[type="radio"] { display: none; } /* Natív rádió elrejtése */
 
     .radio-btn {
         padding: 0.75rem 0.25rem;
@@ -288,7 +295,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
     .radio-btn .emoji { font-size: 1.25rem; line-height: 1; }
 
-    /* Ha a rejtett rádiógomb :checked állapotba kerül, a mellette lévő doboz stílust vált */
+    /* Amikor a natív rádió 'checked', a testvére (a kártya) stílust vált (narancs) */
     .radio-label input[type="radio"]:checked + .radio-btn {
         background-color: var(--accent-bg);
         border-color: var(--brand-orange);
@@ -296,10 +303,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
     .radio-label:hover .radio-btn:not(.checked) { border-color: #B0B0B0; color: var(--text-main); }
     
-    /* Számítás alatt a UI interakciók ideiglenes tiltása */
+    /* Animáció alatti zárolt (disabled) állapot stílusa */
     .model-selector.disabled { opacity: 0.6; pointer-events: none; }
 
-    /* Lenyitható (Accordion) HTML5 details panel stílusok a Multimédia opcióknak */
+    /* ==========================================================================
+       6. LENYÍLÓ PANELEK (HTML5 <details> & <summary> hack)
+       ========================================================================== */
     .media-details {
         background: var(--input-bg);
         border: 1px solid var(--border-color);
@@ -317,29 +326,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         font-size: 0.9rem;
         font-weight: bold;
         color: var(--text-main);
-        list-style: none;
+        list-style: none; /* Eltávolítja a natív böngészős pöttyöt */
         user-select: none;
     }
     
-    /* Safari/Chrome natív nyíl elrejtése a summary elemről */
+    /* Natív nyíl eltüntetése Safari/Chrome alatt */
     .media-summary::-webkit-details-marker { display: none; }
     .media-summary:hover { background-color: #EFEFEF; }
 
-    /* Amikor a panel nyitva van (HTML5 details open attribútum) */
+    /* Ha nyitva van a details tag, a keret és háttér megváltozik, a nyíl elfordul */
     .media-details[open] { border-color: #B0B0B0; background: var(--bg-color); }
     .media-details[open] .media-summary { border-bottom: 1px dashed var(--border-color); margin-bottom: 1rem; background: transparent; }
     .media-details[open] .chevron { transform: rotate(180deg); }
 
     .chevron { width: 18px; height: 18px; transition: transform 0.2s ease; color: var(--text-muted); stroke-width: 2.5; }
-
     .media-details-content { padding: 0 1rem 1rem 1rem; }
     
-    /* CSS Grid a kis multimédia és háttér kártyáknak */
+    /* Kártya alapú (Multimédia és Háttéranyag) választók rácsa */
     .media-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
     .context-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
 
     .media-card-label { cursor: pointer; }
-    .media-card-label input[type="radio"] { display: none; }
+    .media-card-label input[type="radio"] { display: none; } /* Itt is rejtett a natív input */
 
     .media-card {
         background: var(--input-bg);
@@ -356,7 +364,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     .media-card:hover { border-color: #B0B0B0; }
-    
     .media-card-label input[type="radio"]:checked + .media-card {
         background-color: var(--accent-bg);
         border-color: var(--brand-orange);
@@ -366,16 +373,15 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .media-emoji { font-size: 1.5rem; margin-bottom: 0.3rem; line-height: 1; }
     .media-title { font-weight: 800; color: var(--text-main); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.5px;}
     .media-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; }
-    
     .media-details.disabled { opacity: 0.6; pointer-events: none; }
 
     /* ==========================================================================
-       5. EREDMÉNYEK SZEKCIÓ (AI VÁLASZ ANIMÁCIÓK)
-       Ez a rész alapból rejtve van (display: none), és csak JS-ből jelenik meg.
+       7. EREDMÉNYEK ÉS ANIMÁCIÓK SZEKCIÓJA
        ========================================================================== */
+    /* Az eredményblokk kezdetben teljesen rejtett. JS jeleníti meg. */
     .results-section { display: none; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--brand-black); }
 
-    /* Terminál nézet a "Gondolkodó" modellekhez és komplex lekérdezésekhez */
+    /* Terminál nézet az "o1-szerű" gondolkodási fázis szimulálására */
     .thinking-state {
         background: var(--brand-black);
         color: #A0A0A0;
@@ -389,37 +395,38 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .think-header { font-weight: bold; margin-bottom: 0.5rem; color: #FFFFFF; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;}
     .think-content > div { min-height: 1.2em; }
     
-    /* Terminál kurzor villogó animációja CSS-ből */
+    /* CSS Kurzovillogás trükk: Az elem végére egy block karaktert fűzünk, ami pulzál */
     .typing-cursor::after { content: '▋'; animation: blink 1s step-start infinite; margin-left: 4px; color: var(--brand-orange); }
     @keyframes blink { 50% { opacity: 0; } }
 
-    /* Elegáns felugró animáció a dobozok és kártyák megjelenésekor */
+    /* Elegáns felugró, "Pop-in" animáció a megjelenő UI dobozoknak */
     .pop-in { animation: popInBox 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; }
     @keyframes popInBox { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
     /* ==========================================================================
-       6. METRIKÁK ÉS KÁRTYÁK
+       8. METRIKA KÁRTYÁK ÉS CSS-TOOLTIP ARCHITEKTÚRA
        ========================================================================== */
     .output-focus { margin-bottom: 2rem; border-left: 4px solid var(--brand-orange); padding-left: 1rem; }
     .output-focus span.focus-label { font-size: 0.85rem; font-weight: bold; color: var(--text-muted); display: block; text-transform: uppercase; letter-spacing: 1px; }
     .output-focus #totEnergy { font-size: 3.5rem; font-weight: 900; color: var(--brand-orange); line-height: 1.1; letter-spacing: -1px; }
     .energy-header { font-size: 0.95rem; color: var(--text-main); margin-bottom: 1.5rem; padding: 0.5rem 1rem; background: var(--input-bg); display: inline-block; border-radius: 4px; border: 1px solid var(--border-color); }
 
-    /* Flexbox alapú Grid a 6 db metrika kártyának */
+    /* CSS Grid a 6 db alsó fizikai egyenérték kártyának. Auto-fit garantálja a responsivitást. */
     .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
     
     .metric-card {
         background: var(--metric-bg); border: 1px solid var(--metric-border); border-radius: 4px;
         padding: 1.25rem 1rem; display: flex; align-items: center; gap: 1rem; transition: transform 0.2s;
-        /* Z-INDEX FIX: Az alap kártya alacsony rétegen van, hogy a tooltipek felette nyíljanak */
+        /* Z-INDEX BIZTOSÍTÉK: Az alap kártya alacsony (z-index: 1), hogy a nyíló tooltipek
+           biztosan a többi kártya / szöveg fölé kerüljenek. */
         position: relative;
         z-index: 1;
     }
     
-    /* Z-INDEX FIX: Ha hovereljük (vagy mobilon rányomunk), kiemeljük minden más fölé */
+    /* Hover/Active esetén a kártyát előrehozzuk (z-index: 10), hogy a tooltipje ne lógjon be más kártyák alá */
     .metric-card:hover, .metric-card.active-card { border-color: #B0B0B0; z-index: 10; }
 
-    /* Egyedi világoskék háttér a Szerver Hűtés kártyának vizuális kiemelésként */
+    /* Különleges színkiemelés a "Szerver Hűtés" (Víz) kártyának */
     .metric-card.cooling-card { background-color: #F4FAFF; border-color: #E1F0FA; }
     .metric-card.cooling-card:hover, .metric-card.cooling-card.active-card { border-color: #B0D4F0; }
     
@@ -428,32 +435,32 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0;
     }
     
-    /* TOOLTIP ARCHITEKTÚRA ÉS STÍLUSOK (Tiszta CSS megoldás, JS függőség nélkül) */
-    .metric-info { flex: 1; min-width: 0; } /* min-width: 0 segít a flexbox szövegtörésben */
-    
+    .metric-info { flex: 1; min-width: 0; } /* Flexbox szó-törés védelem hosszú számoknál */
     .metric-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 0.2rem; }
     .metric-title-row h4 { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin: 0; }
-    
-    .metric-info p { 
-        font-size: 1.25rem; font-weight: 800; color: var(--text-main); 
-        word-break: break-word; /* Túl hosszú értékek automatikus törése dobozon belül */
-    }
+    .metric-info p { font-size: 1.25rem; font-weight: 800; color: var(--text-main); word-break: break-word; }
 
-    /* Az (i) ikon stílusa */
+    /* --------------------------------------------------------------------------
+       TISZTA CSS TOOLTIP RENDSZER (JavaScript nélküli tartalommegjelenítés)
+       Minden (i) ikon 'data-tooltip' attribútuma tartalmazza a szöveget, amit
+       a CSS ::after pszeudo-eleme olvas ki és jelenít meg buborékként.
+       -------------------------------------------------------------------------- */
     .info-badge {
         display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
         background-color: #EAEAEA; color: var(--brand-dark-gray); font-size: 10px; font-weight: 900;
         cursor: pointer; border-radius: 50%; position: relative; transition: all 0.2s ease; flex-shrink: 0;
-        /* Tooltip X tengely eltolásának dinamikus változója (Alapértelmezés: tökéletes középre zárás) */
+        /* --tt-x változó: Alapból -50% (középre igazított), de JS tudja módosítani, 
+           ha a képernyő szélén lévő kártya tooltipje kilógna. */
         --tt-x: -50%;
     }
 
     .info-badge:hover { background-color: var(--brand-orange); color: #FFFFFF; }
 
-    /* Tooltip buborék ::after pszeudo-elemmel (Kiolvassa a data-tooltip attribútumot) */
+    /* Maga a fekete szövegbuborék */
     .info-badge::after {
-        content: attr(data-tooltip); position: absolute; bottom: 140%; left: 50%; 
-        transform: translateX(var(--tt-x)); /* JS szabályozza kilógás esetén */
+        content: attr(data-tooltip); /* A HTML attribútum beolvasása! */
+        position: absolute; bottom: 140%; left: 50%; 
+        transform: translateX(var(--tt-x)); /* JS által felülírt X koordináta alkalmazása */
         background-color: var(--brand-black); color: #FFFFFF; font-style: normal; font-size: 0.75rem; 
         font-weight: 400; text-transform: none; line-height: 1.3;
         padding: 8px 12px; border-radius: 4px; max-width: 210px; width: max-content; z-index: 100;
@@ -461,29 +468,53 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: left;
     }
 
-    /* Tooltip pici nyíl (CSS háromszög trükk) */
+    /* A buborék alatti pici háromszög, CSS border trükkel megrajzolva */
     .info-badge::before {
         content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
         border-width: 6px; border-style: solid; border-color: var(--brand-black) transparent transparent transparent; z-index: 100;
         opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease; pointer-events: none;
     }
 
-    /* Megjelenítés Hover (Asztal) vagy Active (Mobil kattintás) esetén */
+    /* Megjelenítés Hover (Asztal) vagy rákoppintás (Mobil: .active-tip osztályon át) esetén */
     .info-badge:hover::after, .info-badge:hover::before, .info-badge.active-tip::after, .info-badge.active-tip::before {
         opacity: 1; visibility: visible;
     }
 
     /* ==========================================================================
-       7. EXPORT GOMBOK
+       9. EXPORT GOMBOK, FORMAT TOGGLE ÉS DISCLAIMER
        ========================================================================== */
     .export-section { display: none; margin-top: 2rem; padding-top: 2rem; border-top: 1px dashed var(--border-color); }
-    .export-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    
+    .export-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        width: 100%;
+    }
+    
+    /* Kapcsoló UI: Egy dobozon belüli két gomb (Kép / GIF) */
+    .format-toggle-wrapper {
+        display: flex; align-items: center; justify-content: center; height: 100%; min-height: 44px;
+    }
+    .format-toggle {
+        display: flex; background: var(--input-bg); border: 2px solid var(--brand-black);
+        border-radius: 4px; overflow: hidden; width: 100%; height: 100%;
+    }
+    .toggle-btn {
+        flex: 1; background: transparent; color: var(--text-muted); border: none;
+        font-size: 0.85rem; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease;
+    }
+    .toggle-btn.active { background: var(--brand-black); color: #FFFFFF; }
+    
+    /* Mentés / Megosztás Gombok */
     .export-btn {
         background-color: transparent; color: var(--brand-black); border: 2px solid var(--brand-black);
-        padding: 0.75rem 1.5rem; border-radius: 4px; font-size: 0.9rem; font-weight: bold;
-        text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;
+        padding: 0.75rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; min-height: 44px;
+        text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s ease;
     }
     .export-btn:hover { background-color: var(--input-bg); }
+    .export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
     .share-btn { background-color: var(--brand-black); color: white; }
     .share-btn:hover { background-color: #000; color: white; }
     .export-btn svg { width: 18px; height: 18px; stroke-width: 2.5; }
@@ -491,11 +522,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     .disclaimer-text { font-size: 0.75rem; color: var(--text-muted); text-align: justify; margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); line-height: 1.4; }
 
     /* ==========================================================================
-       8. MOBIL OPTIMALIZÁCIÓ (Responsive Design 480px alatt)
+       10. MOBIL NÉZET (RESPONSIVE DESIGN 480px ALATT)
        ========================================================================== */
     @media (max-width: 480px) {
         body { padding: 1rem 0.5rem; }
         .calc-content { padding: 1.25rem; }
+        
+        /* Modellszelektáló gombok összepréselése */
         .radio-btn { font-size: 0.75rem; padding: 0.5rem 0.1rem; }
         .radio-btn .emoji { font-size: 1.1rem; }
         .model-selector { gap: 0.35rem; }
@@ -505,17 +538,22 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         .context-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         .media-card { padding: 0.75rem 0.25rem; }
         
+        /* Cím és Fő metrika zsugorítása a kifolyás ellen */
         .app-title { font-size: 1.5rem; }
         .output-focus #totEnergy { font-size: 2.8rem; }
-        /* A metrikákat egymás alá pakoljuk mobil nézetben */
+        
+        /* A fizikai metrika kártyákat 1 oszlopba (egymás alá) pakoljuk */
         .metrics-grid { grid-template-columns: 1fr; }
+        
+        /* Export gombok is egymás alá kerülnek kis képernyőn */
+        .export-actions { grid-template-columns: 1fr; gap: 0.5rem; }
     }
 </style>
 </head>
 <body>
 
 <div class="env-calculator" id="calculatorApp">
-    <!-- Fejléc -->
+    <!-- WIDGET FEJLÉC (Brand Section) -->
     <div class="brand-header">
         <div class="brand-logo">MI KHK</div>
         <div class="brand-section">Tudomány</div>
@@ -535,6 +573,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             <textarea id="aiPrompt" placeholder="Írd ide a promptot..."></textarea>
             
             <!-- RAG (Retrieval-Augmented Generation) Szimulátor -> PDF/Könyv csatolása -->
+            <!-- Ez szimulálja a modern kontextus-ablakokat, ahol a dokumentum feltöltése 
+                 drasztikusan megnöveli a prefill-fázis (olvasás) szerverköltségét. -->
             <details class="media-details context-in-input" id="contextSelectorContainer">
                 <summary class="media-summary">
                     <span style="display: flex; align-items: center; gap: 8px;">
@@ -612,7 +652,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         <!-- ================= 2. KIMENET SZEKCIÓ (UI BLOKK) ================= -->
         <div class="section-label" style="margin-top: 2rem;">2. Kimenet (Formátum és Modell)</div>
 
-        <!-- Multimodális Kimenet Kiterjesztés (Kép, Audió, Videó generálás csatolása) -->
+        <!-- Multimodális Kimenet Kiterjesztés (Kép, Audió, Videó generálás) -->
+        <!-- Ezek adják a plusz fix "Média Adót" a számítási modellhez, mivel pl. 
+             a videógenerálás diffúziós modellje sokkal nagyobb energiaigényű. -->
         <details class="media-details" id="mediaSelectorContainer">
             <summary class="media-summary">
                 <span style="display: flex; align-items: center; gap: 8px;">
@@ -662,7 +704,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </details>
 
-        <!-- Modellméret választó (Paraméterszám szimulálása) -->
+        <!-- Modellméret választó (Paraméterszám és Architektúra szimulálása) -->
+        <!-- Light (8B), Medium (GPT-4), Thinking (o1, kiterjesztett CoT szorzóval) -->
         <div class="model-selector">
             <label class="radio-label">
                 <input type="radio" name="aiModel" value="light">
@@ -679,7 +722,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         </div>
 
         <!-- ================= EREDMÉNYEK SZEKCIÓ ================= -->
-        <!-- Alapból rejtve van, a JS teszi láthatóvá a Számítás gomb megnyomása után -->
+        <!-- Ez a rész alapértelmezetten rejtve van, a JS gépelés animáció teszi láthatóvá 
+             a Számítás gomb megnyomása után. Minden kiírt adatot JS fog feltölteni a 'data-text' ből. -->
         <div class="results-section" id="results">
             
             <!-- Rendszernapló (Terminál nézet) komplex folyamatokhoz -->
@@ -709,7 +753,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     <div class="metric-info">
                         <div class="metric-title-row">
                             <h4 class="type-text" data-text="Szerver Hűtés"></h4>
-                            <!-- Az (i) ikon data-tooltip attribútuma tartalmazza a magyarázatot -->
+                            <!-- Az (i) ikon data-tooltip attribútuma tartalmazza a lebegő magyarázatot -->
                             <span class="info-badge" tabindex="0" data-tooltip="A felhőben dolgozó szervereket hatalmas hűtőtornyok temperálják. A legfrissebb iparági kutatások (WUE átlagok) alapján 1 Wh energia elhasználása során nagyjából 0,5–1 milliliter édesvíz párolog el végleg a légkörbe.">i</span>
                         </div>
                         <p><span id="metricCoolingWater" class="type-dynamic"></span><span class="type-text" data-text=" ml"></span></p>
@@ -773,17 +817,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 
             </div>
 
-            <!-- Export szekció (Social Media megosztás) -->
+            <!-- ================= EXPORT SZEKCIÓ (3-osztatú rács formátumváltóval) ================= -->
             <div class="export-section" id="exportSection">
                 <div class="export-actions">
+                    <!-- 1. Formátum Választó Toggle (Kép / GIF kapcsoló) -->
+                    <div class="format-toggle-wrapper">
+                        <div class="format-toggle">
+                            <button id="formatPng" class="toggle-btn active" data-format="png">Kép</button>
+                            <button id="formatGif" class="toggle-btn" data-format="gif">GIF</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. Egységes Mentés Gomb (A JS dönti el, mit tölt le a Toggle alapján) -->
                     <button id="downloadBtn" class="export-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
-                        Mentés képként
+                        Mentés
                     </button>
+                    
+                    <!-- 3. Dinamikus Megosztás Gomb (Natív Web Share API, Fallback-kel) -->
                     <button id="shareBtn" class="export-btn share-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="18" cy="5" r="3"></circle>
@@ -794,6 +849,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                         </svg>
                         Megosztás
                     </button>
+                    
+                    <!-- GIF Figyelmeztetés (Dinamikusan jelenik meg, ha a GIF formátumot választják) -->
+                    <div id="gifWarning" style="display: none; grid-column: 1 / -1; text-align: center; font-size: 0.8rem; color: var(--brand-orange); font-weight: bold; margin-top: 0.25rem;">
+                        ⏳ A GIF renderelése (főleg megosztáshoz) néhány másodpercet is igénybe vehet. Kérjük, légy türelemmel!
+                    </div>
                 </div>
             </div>
         </div>
@@ -811,7 +871,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Nincs API hívás, a környezeti terhelést determinisztikus matekkal becsüljük.
     // ==========================================================================
 
-    // Előre definiált bemutató szcenáriók (A dobókocka gomb használja)
+    // Előre definiált bemutató szcenáriók (A dobókocka gomb ezt az array-t hívja be)
     const PRESET_SCENARIOS = [
         { model: "light", media: "none", context: "none", prompt: "Hogyan kell szakszerűen eltávolítani egy beszáradt vörösborfoltot a fehér ingemről?" },
         { model: "medium", media: "none", context: "pdf_small", prompt: "Foglald össze nekem 5 vázlatpontban ennek a makroökonómia tanulmánynak a lényegét, holnap reggel felelek!" },
@@ -827,7 +887,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
     // MULTIMODAL TAX (Média Adó)
     // Empirikus kutatások alapján megállapított fix Watt-óra (Wh) költségek, 
-    // amiket a szöveggenerálás mellé pluszban kifizetünk energiában.
+    // amiket a szöveggenerálás mellé pluszban kifizetünk energiában,
+    // mivel egy 5 másodperces videó renderelése nagyságrendekkel drágább egy sima mondatnál.
     const MEDIA_ENERGY_TAX_WH = {
         'none': 0.0,      // Szövegnél nincs plusz adó
         'image': 2.9,     // Luccioni et al. (2023) - DALL-E 3 szintű diffúzió költsége
@@ -844,33 +905,37 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         let wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
         
         // 1.1 Hosszú kontextus matek (Prefill Phase RAG szimuláció)
-        // A modern LLM-eknek ezt is végig kell olvasniuk (Prefill), ami jelentős input költség.
+        // A modern LLM-eknek egy csatolt PDF-et is végig kell olvasniuk a válaszadás előtt.
+        // Ez a 'Prefill' fázis rendkívül gyorsan fut, de energiaigényes.
         if (contextType === 'article') { charCount += 5000; wordCount += 850; }
         else if (contextType === 'pdf_small') { charCount += 30000; wordCount += 5000; }
         else if (contextType === 'pdf_large') { charCount += 300000; wordCount += 50000; }
         else if (contextType === 'book') { charCount += 1500000; wordCount += 250000; }
         
-        // 1.2 BPE (Byte Pair Encoding) Token szimuláció (Max választás a biztonságért)
+        // 1.2 BPE (Byte Pair Encoding) Token szimuláció (A szigorúbbat vesszük)
+        // Átlagosan 1 token = 4 karakter VAGY 0.75 szó angolul. Magyarban ez torzulhat.
         const inputTokens = Math.max(Math.ceil(charCount / 4.0), Math.ceil(wordCount * 1.33));
         
         // 1.3 Kimeneti Token Predikció (Igetövek és kulcsszavak alapján)
+        // Megpróbáljuk kitalálni a prompt szövegéből, hogy a modell röviden vagy hosszan fog válaszolni.
         const lowerText = text.toLowerCase();
         let baseOutputTokens = 0;
         
         if (/\b(write|essay|story|írj|esszé|történet)\b/.test(lowerText)) { 
-            baseOutputTokens = 400 + (inputTokens * 2.0); // Bőbeszédű kimenet
+            baseOutputTokens = 400 + (inputTokens * 2.0); // Bőbeszédű kimenet generálása
         } else if (/\b(code|script|kód|szkript)\b/.test(lowerText)) { 
             baseOutputTokens = 300 + (inputTokens * 1.5); 
         } else if (/\b(summarize|tldr|összefoglal|röviden)\b/.test(lowerText)) { 
-            baseOutputTokens = Math.max(50, inputTokens * 0.3); // Rövidített kimenet
+            baseOutputTokens = Math.max(50, inputTokens * 0.3); // Rövidített kivonat
         } else if (/\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/.test(lowerText) || lowerText.includes('?')) { 
-            baseOutputTokens = 150 + (inputTokens * 1.0); // Kérdés-felelet
+            baseOutputTokens = 150 + (inputTokens * 1.0); // Tipikus kérdés-felelet arány
         } else { 
-            baseOutputTokens = 25 + (inputTokens * 0.2); // Általános csevegés
+            baseOutputTokens = 25 + (inputTokens * 0.2); // Általános, rövid csevegés
         }
 
         // 1.4 Determinisztikus Variancia ("Organikus" hatás)
-        // ASCII kódok alapján "véletlenszerű", de mindig ugyanarra az értékre kifutó szám.
+        // Létrehozunk egy stabil pszeudó-random számot a beírt karakterek ASCII kódjának 
+        // összegéből. Így ugyanarra a promptra mindig UGYANAZ jön ki, de más promptra eltér.
         let charCodeSum = 0;
         for (let i = 0; i < charCount; i++) { charCodeSum += text.charCodeAt(i) || 0; }
         const variance = (charCodeSum % 50) - 25; 
@@ -880,7 +945,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /**
-     * ENERGIA ÉS VÍZ SZÁMÍTÁS (Watt-óra és Milliliter)
+     * ENERGIA ÉS VÍZ SZÁMÍTÁS (Watt-óra és Milliliter kiszámítása)
      */
     function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType) {
         // Alapértelmezett (Közepes / GPT-4o szint) energia szorzók (Wh / 1000 token)
@@ -888,11 +953,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         let finalOutputTokens = outputTokens;
 
         if (modelTier === 'light') {
+            // Llama-3 8B vagy Claude Haiku szint - olcsóbb és gyorsabb
             inEnergyRate = 0.05; outEnergyRate = 0.60;
         } else if (modelTier === 'thinking') {
-            // Gondolkodó modellek (o1) drágábbak és rejtett "Chain of Thought"-ot használnak
+            // Gondolkodó modellek (pl. OpenAI o1) sokkal drágábbak, mert
+            // a rejtett "Chain of Thought" miatt többször átgondolják a választ.
             inEnergyRate = 0.80; outEnergyRate = 4.00; 
-            finalOutputTokens *= 5; // A belső gondolatmenet 5x szorzót kap
+            finalOutputTokens *= 5; // A belső rejtett tokeneket szimuláljuk az 5x szorzóval
         }
 
         const inputEnergy = (inputTokens / 1000) * inEnergyRate;
@@ -900,32 +967,35 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         
         const mediaEnergy = MEDIA_ENERGY_TAX_WH[mediaType] || 0.0;
         
-        // PUE (Power Usage Effectiveness) - Infrastruktúra adó (Hűtés, hálózat)
+        // PUE (Power Usage Effectiveness) - Infrastruktúra adó (Hűtés, hálózat, világítás)
+        // A szerverközpont maga is fogyaszt áramot a gépeken túl. 1.2 egy szolid átlagérték.
         const AI_HYPERSCALER_AVERAGE_PUE = 1.2;
         const totalEnergyWh = (inputEnergy + outputEnergy + mediaEnergy) * AI_HYPERSCALER_AVERAGE_PUE;
         
         // WUE (Water Usage Effectiveness) - 0.5 ml/Wh hűtővíz párolgás
+        // Nagyjából fél milliliter édesvíz párolog el egy Watt-óra energia hűtésekor.
         const datacenterWaterML = totalEnergyWh * 0.5;
 
         return { totalEnergyWh, datacenterWaterML, finalOutputTokens };
     }
 
     /**
-     * FIZIKAI EGYENÉRTÉKESEK (Matek a mindennapi példákhoz)
+     * FIZIKAI EGYENÉRTÉKESEK (Matek a mindennapi, megfogható példákhoz)
+     * Ezek az egyenletek váltják át a Watt-órát olyan dolgokra, amiket a felhasználó ért.
      */
     function getPhysicalEquivalents(energyWh) {
         return {
-            phoneChargePct: (energyWh / 22.5) * 100, // 22.5 Wh tényleges hálózati töltési igény
-            ledMinutes: (energyWh / 10) * 60, // 10W LED izzó = 10 Wh / óra
-            waterLiters: energyWh / 0.4, // Vízművek szivattyú energiája: 0.4 Wh/Liter
-            streamMinutes: energyWh / 1.25, // HD Stream Netflix: 75W (1.25 Wh/Perc)
-            teaCups: energyWh / 25 // 1 bögre víz (250ml) 100°C-ra = ~25 Wh
+            phoneChargePct: (energyWh / 22.5) * 100, // 22.5 Wh tényleges hálózati konnektor töltési igény
+            ledMinutes: (energyWh / 10) * 60, // 10W LED izzó = 10 Wh energia elhasználása 1 óra alatt
+            waterLiters: energyWh / 0.4, // Vízművek szivattyú energiája: kb 0.4 Wh/Liter tisztítás
+            streamMinutes: energyWh / 1.25, // HD Stream Netflix szerverköltség: 75W (1.25 Wh/Perc)
+            teaCups: energyWh / 25 // 1 bögre (250ml) 20 fokos víz 100 fokra (25 Wh hőkapacitás)
         };
     }
 
     /**
-     * MAGYAR LOKALIZÁCIÓS SZÁMFORMÁZÓ (Tizedesvesszők és ezres tagolók)
-     * Ha a szám abszolút értéke >= 100, levágja a tizedeseket, hogy ne folyjon ki a dobozból.
+     * MAGYAR LOKALIZÁCIÓS SZÁMFORMÁZÓ (Tizedesvesszők és ezres tagolók, pl: "1 234,50")
+     * Ha a szám abszolút értéke >= 100, levágja a tizedeseket, hogy beférjen a metrikakártya dobozába.
      */
     function formatHu(num) {
         const isInteger = num % 1 === 0;
@@ -937,7 +1007,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     // ==========================================================================
-    // 2. FELHASZNÁLÓI FELÜLET (UI) DOM ELEMEK BEKÖTÉSE
+    // 2. FELHASZNÁLÓI FELÜLET (UI) DOM ELEMEK BEKÖTÉSE ÉS ESEMÉNYKEZELÉS
     // ==========================================================================
     const aiPrompt = document.getElementById('aiPrompt');
     const charCountDisplay = document.getElementById('charCount');
@@ -964,7 +1034,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     let hasEditedPrompt = false; 
     let defaultPrompt = ""; 
 
-    // Média kiválasztás logika (Lenyíló menü okos bezárása és felirat frissítése)
+    // Média kiválasztás logika: A lenyíló HTML5 details panel okos bezárása kattintás után,
+    // valamint a fő felirat frissítése a kiválasztott opció nevére.
     mediaInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -975,12 +1046,12 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 
                 summaryIcon.textContent = emoji;
                 summaryText.textContent = `Kimenet: ${title} (${desc.replace('+ ', '+')})`;
-                mediaSelectorContainer.removeAttribute('open');
+                mediaSelectorContainer.removeAttribute('open'); // Zárja be az harmonikát
             }
         });
     });
 
-    // Kontextus kiválasztás logika
+    // Kontextus kiválasztás logika: Hasonló a fentihez, RAG opciók kezelése.
     contextInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -997,12 +1068,14 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     contextSummaryIcon.textContent = emoji;
                     contextSummaryText.textContent = `Bemenet: ${title} (${desc})`;
                 }
-                contextSelectorContainer.removeAttribute('open');
+                contextSelectorContainer.removeAttribute('open'); // Zárja be az harmonikát
             }
         });
     });
 
-    // Fókusz esemény: "Tiszta Lap" biztosítása a felhasználónak
+    // Fókusz esemény: "Tiszta Lap" biztosítása a felhasználónak. 
+    // Ha a véletlenszerű betöltött példa van még a mezőben, az első kattintásra kiürítjük,
+    // mintha egy friss, új kérdést szeretne feltenni a látogató.
     aiPrompt.addEventListener('focus', () => {
         if (aiPrompt.value === defaultPrompt) {
             aiPrompt.value = ''; 
@@ -1019,7 +1092,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         }
     });
 
-    // ================= VÉLETLENSZERŰ SZCENÁRIÓ BETÖLTÉSE =================
+    // ================= VÉLETLENSZERŰ SZCENÁRIÓ BETÖLTÉSE (DOBÓKOCKA) =================
+    // Lekéri az egyik előre megírt komplex promptot, és szimulálja a rádiógombok megnyomását is.
     function initRandomScenario() {
         const scenario = PRESET_SCENARIOS[Math.floor(Math.random() * PRESET_SCENARIOS.length)];
         
@@ -1045,18 +1119,17 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Dobókocka esemény
     randomBtn.addEventListener('click', initRandomScenario);
 
-    // Segédfüggvény a JavaScript szál aszinkron "altatására"
+    // Segédfüggvény a JavaScript szál aszinkron "altatására" animációkhoz
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // ÚJ: Biztonságos lefelé görgető funkció (Mobil "yo-yo" ugrálás megelőzésére)
+    // BIZTONSÁGOS AUTO-SCROLL FUNKCIÓ (Mobil "yo-yo" ugrálás megelőzésére)
+    // Csak lefelé, abszolút pixelpozícióba görget, elkerülve az elem-szintű fókuszugrálást.
     function smoothScrollDown() {
-        // Kiszámolja a dokumentum teljes, aktuális magasságát
         const targetY = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-        // Csak lefelé, abszolút pozícióba görget, elkerülve az elem-szintű ugrálást
         window.scrollTo({ top: targetY, behavior: 'smooth' });
     }
 
-    // Terminál-szerű gépelési effektus
+    // Terminál-szerű gépelési effektus a szövegek látványos feltöltéséhez
     async function typeWriter(element, text, minDelay = 20, maxDelay = 60) {
         element.textContent = ''; 
         const characters = Array.from(text);
@@ -1067,16 +1140,20 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         }
     }
 
+    // Karakter számláló frissítése
     aiPrompt.addEventListener('input', () => {
         charCountDisplay.textContent = aiPrompt.value.length;
         if (!hasEditedPrompt) hasEditedPrompt = true; 
     });
 
+    // Enter billentyű figyelése (kivéve Shift+Enter) a számítás gyors indításához
     aiPrompt.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); calcBtn.click(); }
     });
 
     // ================= FŐ FOLYAMAT: Számolás Gomb Logikája =================
+    // Ez a függvény gyűjti be az adatokat, futtatja le a kalkulációt,
+    // majd egy látványos aszinkron (await) animációs sorozatban jeleníti meg azokat.
     calcBtn.addEventListener('click', async () => {
         const text = aiPrompt.value;
         if (text.length === 0) return; 
@@ -1093,7 +1170,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia);
         const equivalents = getPhysicalEquivalents(impact.totalEnergyWh);
 
-        // UI elemek lezárása az animáció idejére
+        // UI elemek lezárása az animáció idejére (ne tudjon belekattintani közben)
         calcBtn.disabled = true;
         randomBtn.disabled = true;
         modelSelectorContainer.classList.add('disabled');
@@ -1103,7 +1180,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         mediaInputs.forEach(radio => radio.disabled = true);
         contextInputs.forEach(radio => radio.disabled = true);
 
-        // A 'data-text' attribútumok feltöltése formázott értékekkel (A Wh már a szám mellé van rakva!)
+        // A HTMl 'data-text' attribútumok feltöltése formázott értékekkel.
+        // Innen fogja felolvasni az írógép effektus karakterről karakterre.
         document.getElementById('outTokens').setAttribute('data-text', `~${impact.finalOutputTokens.toLocaleString('hu-HU')}`);
         document.getElementById('totEnergy').setAttribute('data-text', `${formatHu(impact.totalEnergyWh)} Wh`);
         document.getElementById('metricCoolingWater').setAttribute('data-text', formatHu(impact.datacenterWaterML));
@@ -1113,7 +1191,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         document.getElementById('metricStream').setAttribute('data-text', formatHu(equivalents.streamMinutes));
         document.getElementById('metricTea').setAttribute('data-text', formatHu(equivalents.teaCups));
 
-        // Rácsok resetelése az újra-animáláshoz
+        // Rácsok és dobozok resetelése az újra-animáláshoz
         const allTypeElements = resultsSection.querySelectorAll('.type-text, .type-dynamic');
         const structuralBoxes = resultsSection.querySelectorAll('.energy-header, .output-focus, .metric-card');
 
@@ -1126,19 +1204,18 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         thinkingState.classList.remove('pop-in');
         thinkContent.innerHTML = ''; 
 
-        // Megjelenítjük a konténert
+        // Megjelenítjük a konténert (még üresen)
         resultsSection.style.display = 'block';
-        
-        // AUTO-SCROLL: Az animáció kezdetén biztonságosan lefelé görgetünk
-        smoothScrollDown();
+        smoothScrollDown(); // Biztonságos görgetés a kezdetekkor
 
+        // Dinamikus animációs sebesség a kiválasztott modelltől függően
         let minSpeed = 5; let maxSpeed = 15;
         let showThinkingState = (selectedModel === 'thinking' || selectedMedia === 'video' || selectedContext !== 'none');
 
         if (selectedModel === 'light') { minSpeed = 1; maxSpeed = 3; } 
         else if (selectedModel === 'medium') { minSpeed = 2; maxSpeed = 5; }
 
-        // ==== 1. Terminál (Rendszernapló) animálása ====
+        // ==== 1. FÁZIS: Terminál (Rendszernapló) animálása komplex modelleknél ====
         if (showThinkingState) {
             thinkingState.style.display = 'block';
             thinkingState.classList.add('pop-in');
@@ -1169,7 +1246,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 thinkContent.appendChild(lineEl);
                 lineEl.classList.add('typing-cursor');
                 
-                // AUTO-SCROLL: A terminál gépelése közben is finoman görgetünk lefelé
+                // AUTO-SCROLL a gépelés közben, ha túl hosszú a log
                 smoothScrollDown();
                 
                 await typeWriter(lineEl, textLine, 5, 20); 
@@ -1178,21 +1255,22 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             }
             await sleep(200); 
         } else {
+            // Gyorsabb modelleknél egy pici várakozás, hogy természetesnek hasson
             if (selectedModel === 'light') await sleep(100);
             else if (selectedModel === 'medium') await sleep(250);
         }
 
-        // ==== 2. Kártyák és metrikák gépeléses animálása ====
+        // ==== 2. FÁZIS: Kártyák és metrikák sorozatos gépeléses animálása ====
         for (const el of allTypeElements) {
             const textToType = el.getAttribute('data-text');
             if (textToType) {
                 const parentBox = el.closest('.energy-header, .output-focus, .metric-card');
+                // Ha a befoglaló doboz még rejtett, most feldobjuk pop-in animációval
                 if (parentBox && parentBox.style.display === 'none') {
                     parentBox.style.display = ''; 
                     parentBox.classList.add('pop-in');
                     
-                    // AUTO-SCROLL: Minden új doboz felugrásakor lejjebb toljuk az oldalt (csak lefelé)
-                    smoothScrollDown();
+                    smoothScrollDown(); // Új doboz megjelenésekor lejjebb tolás
                     
                     await sleep(40); 
                 }
@@ -1200,7 +1278,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             }
         }
         
-        // Visszaengedjük a gombokat a felhasználónak
+        // Visszaengedjük a UI vezérlőket a felhasználónak
         calcBtn.disabled = false;
         randomBtn.disabled = false;
         modelSelectorContainer.classList.remove('disabled');
@@ -1210,28 +1288,51 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         mediaInputs.forEach(radio => radio.disabled = false);
         contextInputs.forEach(radio => radio.disabled = false);
 
+        // Végül megjelenik az Export szekció (Mentés/Megosztás)
         exportSection.style.display = 'block';
         exportSection.classList.add('pop-in');
         
-        // Végső igazítás, hogy a social média gombok is tökéletesen látszódjanak
         setTimeout(() => {
-            smoothScrollDown();
+            smoothScrollDown(); // Végső igazítás
         }, 100);
     });
 
+    // Indításkor azonnal kiszámoljuk a karaktereket
     charCountDisplay.textContent = aiPrompt.value.length;
 
     // ==========================================================================
-    // 3. INFOGRAFIKA EXPORTÁLÁS (NATIVE HTML5 CANVAS)
-    // Ez a kód láthatatlanul, pixelről pixelre megrajzolja és kimenti a végeredményt.
+    // 3. INFOGRAFIKA EXPORTÁLÁS (CANVAS) ÉS ANIMÁLT GIF KÓDOLÓ MOTOR
+    // Mivel a DOM (HTML) egy az egyben nem exportálható képként, egy belső 
+    // HTML5 Canvas vásznat használunk a grafika milliméterpontos újrarajzolására.
+    // Ebből nyerjük ki a statikus PNG-t, és az animált GIF kockákat is.
     // ==========================================================================
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
+    const formatBtns = document.querySelectorAll('.toggle-btn');
+    const gifWarning = document.getElementById('gifWarning');
+    
+    let currentExportFormat = 'png'; // Alapértelmezett beállítás
+
+    // Formátum Választó (Kép vs GIF) Toggle logika a frontend gombokhoz
+    formatBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            formatBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentExportFormat = e.target.getAttribute('data-format');
+            
+            // Ha a GIF-et kéri a user, feldobjuk a figyelmeztetést a renderelési időről.
+            if (currentExportFormat === 'gif') {
+                gifWarning.style.display = 'block';
+            } else {
+                gifWarning.style.display = 'none';
+            }
+        });
+    });
     
     /**
      * TEXT WRAPPING MATEMATIKA A CANVAS-HEZ
-     * Mivel a HTML5 Canvas `fillText` nem tud automatikusan sort törni, ez a függvény
-     * megméri minden szó pixelszélességét, és beállítja, hol kell elvágni a sorokat.
+     * Mivel a HTML5 Canvas `fillText` parancsa nem tud automatikusan sort törni, ez a függvény
+     * megméri minden szó pixelszélességét, és beállítja, hol kell elvágni a sorokat a dobozon belül.
      */
     function getCanvasLines(ctx, text, maxWidth) {
         const words = text.split(/\s+/);
@@ -1249,15 +1350,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     }
 
     /**
-     * Vizuális Vászon Generátor (Létrehoz egy 1080px széles PNG képet memóriában)
+     * Segédfüggvény: Magyarul formázott szöveg (pl. "1 234,56") nyers Float számmá alakítása a Canvas animációhoz.
      */
-    function createInfographicCanvas() {
+    function parseHuToFloat(str) {
+        const numStr = str.replace(/[^\d,-]/g, '').replace(',', '.');
+        return parseFloat(numStr) || 0;
+    }
+
+    /**
+     * Adatgyűjtő függvény: Összeszedi a kiszámolt értékeket a DOM-ból a statikus képhez és a GIF-hez.
+     */
+    function getInfographicData() {
         const promptText = aiPrompt.value;
+        // Kiszűri a modellszövegből a felesleges karaktereket
         let modelName = document.querySelector('input[name="aiModel"]:checked').nextElementSibling.querySelector('.label').textContent.trim();
         modelName = modelName.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
         const outTokens = document.getElementById('outTokens').innerText;
-        const totEnergy = document.getElementById('totEnergy').innerText;
         
+        const totEnergyStr = document.getElementById('totEnergy').innerText;
+        const totEnergyRaw = parseHuToFloat(totEnergyStr);
+        const totEnergyUnit = totEnergyStr.split(' ').pop(); 
+        
+        // Média és kontextus metaadatok összefűzése a fekete kapszulába
         const selectedMediaValue = document.querySelector('input[name="mediaType"]:checked').value;
         let mediaText = '';
         if (selectedMediaValue === 'image') mediaText = ' | KIMENET: +1 KÉP';
@@ -1273,7 +1387,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
         const infoText = `MODELL: ${modelName.toUpperCase()}${mediaText}${contextText}   |   KIMENET: ${outTokens} TOKEN`;
 
-        // Értékek begyűjtése a HTML DOM-ból a kártyákhoz
+        // Alsó 6 metrikakártya adatainak kigyűjtése
         const metrics = [
             { icon: '☁️', title: 'Szerver Hűtés', val: document.getElementById('metricCoolingWater').innerText + ' ml', bg: '#F4FAFF', border: '#E1F0FA' },
             { icon: '📱', title: 'Telefon Töltés', val: document.getElementById('metricPhone').innerText + '%' },
@@ -1283,25 +1397,43 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             { icon: '☕', title: 'Vízforralás', val: document.getElementById('metricTea').innerText + ' bögre' }
         ];
 
+        // Metrikák numerikus és szöveges elemeinek bontása az animált pörgetés (Cubic Ease-Out) matematikai számolásához
+        metrics.forEach(m => {
+            m.rawVal = parseHuToFloat(m.val);
+            m.unit = m.val.includes('%') ? '%' : m.val.split(' ').slice(1).join(' ');
+        });
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const width = 1080;
+        const width = 1080; // A generált kép / canvas fix szélessége (FullHD álló tájoláshoz optimalizálva)
         
-        // DINAMIKUS MAGASSÁG: Lemérjük, hány soros lesz a begépelt prompt
         ctx.font = 'italic 30px Arial, sans-serif';
         const wrappedPromptLines = getCanvasLines(ctx, promptText, 780);
+        // Dinamikus magasság számítása: minél hosszabb a szöveg, annál magasabb lesz a végleges kép
         const promptBoxHeight = Math.max(140, wrappedPromptLines.length * 42 + 80);
         const height = promptBoxHeight + 1150; 
-        
-        canvas.width = width;
-        canvas.height = height;
 
-        ctx.fillStyle = '#1A1A1A';
+        return {
+            promptText, outTokens, totEnergyStr, totEnergyRaw, totEnergyUnit, infoText, metrics,
+            width, height, promptBoxHeight, wrappedPromptLines
+        };
+    }
+
+    /**
+     * MESTER-IDŐVONAL CANVAS GENERÁTOR (TIME-BASED RENDERING)
+     * Kiszámítja és felrajzolja a Canvas-re az animáció állapotát egy adott "t" (milliszekundum) pillanatban.
+     * Ez a függvény a GIF export szíve: mikroszekundum pontosággal vezérli, hol tart az animáció.
+     */
+    function renderInfographicFrame(ctx, data, t) {
+        const { width, height, promptBoxHeight, wrappedPromptLines, promptText, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics } = data;
+
+        // --- ALAP (0-tól végig): Sötét háttér, Fehér főkártya, Fejléc, Idézetdoboz és Lábléc ---
+        ctx.fillStyle = '#1A1A1A'; // Vágókép/margó
         ctx.fillRect(0, 0, width, height);
 
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(50, 50, width - 100, height - 100, 8);
+        if(ctx.roundRect) ctx.roundRect(50, 50, width - 100, height - 100, 8); // Fehér belső lap
         else ctx.rect(50, 50, width - 100, height - 100);
         ctx.fill();
 
@@ -1322,63 +1454,118 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         ctx.fillText('MENNYIBE KERÜL EGYETLEN LEKÉRDEZÉS?', width / 2, 215);
 
         const promptY = 280;
-        ctx.fillStyle = '#F5F5F5';
+        ctx.fillStyle = '#F5F5F5'; // Idézet (prompt) szürke háttere
         ctx.beginPath();
         if(ctx.roundRect) ctx.roundRect(100, promptY, width - 200, promptBoxHeight, 4);
         else ctx.rect(100, promptY, width - 200, promptBoxHeight);
         ctx.fill();
         
         ctx.fillStyle = '#EA4C15';
-        ctx.fillRect(100, promptY, 8, promptBoxHeight);
+        ctx.fillRect(100, promptY, 8, promptBoxHeight); // Narancssárga bal oldali díszcsík
 
         ctx.fillStyle = '#E5E7EB';
         ctx.font = '900 90px Georgia, serif';
         ctx.textAlign = 'left';
         ctx.fillText('"', 130, promptY + 85);
+        
+        const footerY = height - 75;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#999999';
+        ctx.font = '600 18px Arial, sans-serif';
+        ctx.fillText('Készült az MI KHK Környezeti Hatás Kalkulátorával', width / 2, footerY);
 
-        ctx.fillStyle = '#333333';
-        ctx.font = 'italic 30px Arial, sans-serif';
-        wrappedPromptLines.forEach((line, i) => {
-            ctx.fillText(line, 190, promptY + 65 + (i * 42));
-        });
+        // --- FÁZIS 1: Írógép effektus szimulálása a Canvasen (300ms - 1600ms) ---
+        let charsToShow = 0;
+        if (t >= 300 && t <= 1600) {
+            charsToShow = Math.floor(promptText.length * ((t - 300) / 1300));
+        } else if (t > 1600) {
+            charsToShow = promptText.length; // 1.6mp után az összes karakter kint van
+        }
+
+        if (charsToShow > 0) {
+            ctx.fillStyle = '#333333';
+            ctx.font = 'italic 30px Arial, sans-serif';
+            ctx.textAlign = 'left';
+            let drawnChars = 0;
+            // Tördelés logikája
+            for (let i = 0; i < wrappedPromptLines.length; i++) {
+                const line = wrappedPromptLines[i];
+                const charsLeft = charsToShow - drawnChars;
+                if (charsLeft <= 0) break;
+                const textToDraw = line.substring(0, charsLeft);
+                ctx.fillText(textToDraw, 190, promptY + 65 + (i * 42));
+                drawnChars += line.length + 1;
+            }
+        }
 
         let currentY = promptY + promptBoxHeight + 60;
 
-        ctx.font = '700 18px Arial, sans-serif';
-        let measuredTextWidth = ctx.measureText(infoText).width;
-        
-        if (measuredTextWidth > 800) {
-            ctx.font = '700 15px Arial, sans-serif';
-            measuredTextWidth = ctx.measureText(infoText).width;
-        }
-        const capsuleWidth = measuredTextWidth + 60; 
+        // Segédfüggvény a matematikai animációhoz: Felfelé indul gyorsan, de a végén finoman lelassul.
+        const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
 
-        ctx.fillStyle = '#1A1A1A';
-        ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(100, currentY, capsuleWidth, 44, 4);
-        else ctx.rect(100, currentY, capsuleWidth, 44);
-        ctx.fill();
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        ctx.fillText(infoText, 100 + capsuleWidth / 2, currentY + 29);
+        // --- FÁZIS 2: Fekete Kapszula (Metaadatok) lágy áttűnése (1600ms - 1900ms) ---
+        if (t >= 1600) {
+            let alpha = t <= 1900 ? (t - 1600) / 300 : 1.0;
+            
+            ctx.globalAlpha = alpha; // Alpha állítása az opacity (áttűnés) hatás eléréséhez
+            
+            ctx.font = '700 18px Arial, sans-serif';
+            let measuredTextWidth = ctx.measureText(infoText).width;
+            if (measuredTextWidth > 800) {
+                ctx.font = '700 15px Arial, sans-serif'; // Ha túl hosszú (pl pdf csatolás miatt), picit zsugorítjuk
+                measuredTextWidth = ctx.measureText(infoText).width;
+            }
+            const capsuleWidth = measuredTextWidth + 60; 
+
+            ctx.fillStyle = '#1A1A1A';
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(100, currentY, capsuleWidth, 44, 4);
+            else ctx.rect(100, currentY, capsuleWidth, 44);
+            ctx.fill();
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText(infoText, 100 + capsuleWidth / 2, currentY + 29);
+            
+            ctx.globalAlpha = 1.0; // ALPHA SZIVÁRGÁS VÉDELEM (Vissza kell állítani 1-re, különben minden elhalványul!)
+        }
 
         currentY += 120; 
-        ctx.fillStyle = '#555555';
-        ctx.textAlign = 'left';
-        ctx.font = '800 22px Arial, sans-serif';
-        ctx.fillText('TELJES ENERGIA LÁBNYOM', 100, currentY);
 
-        currentY += 105;
-        ctx.fillStyle = '#EA4C15'; 
-        
-        // Canvas méretezés extrém értékekhez a Lábnyom szövegre
-        ctx.font = '900 120px Arial, sans-serif';
-        if (ctx.measureText(totEnergy).width > 850) {
-            ctx.font = '900 95px Arial, sans-serif';
+        // --- FÁZIS 3: A Fő Narancs Szám (Össz. Wh) felállása (1900ms - 3100ms) ---
+        if (t >= 1900) {
+            let textAlpha = t <= 2300 ? (t - 1900) / 400 : 1.0;
+            ctx.globalAlpha = textAlpha;
+            ctx.fillStyle = '#555555';
+            ctx.textAlign = 'left';
+            ctx.font = '800 22px Arial, sans-serif';
+            ctx.fillText('TELJES ENERGIA LÁBNYOM', 100, currentY);
+            ctx.globalAlpha = 1.0;
+
+            currentY += 105;
+            
+            let displayEnergy = totEnergyStr; 
+            
+            if (t <= 3100) {
+                // pörgetés animáció: progress (0-tól 1-ig) szorozva a nyers értékkel, finomítva a Cubic fügvénnyel
+                let progress = Math.max(0, (t - 1900) / 1200);
+                let currentVal = totEnergyRaw * easeOutCubic(progress);
+                displayEnergy = currentVal.toFixed(2).replace('.', ',') + " " + totEnergyUnit;
+            }
+
+            ctx.fillStyle = '#EA4C15'; 
+            ctx.font = '900 120px Arial, sans-serif';
+            if (ctx.measureText(displayEnergy).width > 850) {
+                ctx.font = '900 95px Arial, sans-serif'; // Tördelésvédelem extrém magas Wh érték esetén
+            }
+            ctx.fillText(displayEnergy, 95, currentY);
+        } else {
+            currentY += 105; 
         }
-        ctx.fillText(totEnergy, 95, currentY);
-        
+
+        // --- FÁZIS 4: Lépcsőzetes (Staggered) Kártya Beúszások (2300ms-től, kártyánként +120ms tolás) ---
+        // A kártyák nem egyszerre puffannak be, hanem egyenként, apró csúszással érkeznek, 
+        // miközben a rajtuk lévő fizikai érték (ml, %, perc) is pörög.
         currentY += 80;
         const startX = 100;
         const cardW = 273; 
@@ -1386,175 +1573,356 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const gap = 30;
 
         metrics.forEach((m, i) => {
-            const col = i % 3; 
-            const row = Math.floor(i / 3); 
-            const x = startX + (col * (cardW + gap));
-            const y = currentY + (row * (cardH + gap));
+            const startTime = 2300 + (i * 120); // Ez adja a lépcsőzetes csúsztatást
+            const duration = 400; // Egy kártya beúszása és pörgése összesen 400ms-t vesz igénybe
+            const endTime = startTime + duration;
             
-            ctx.fillStyle = m.bg || '#FFFFFF';
-            ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(x, y, cardW, cardH, 4);
-            else ctx.rect(x, y, cardW, cardH);
-            ctx.fill();
-            ctx.strokeStyle = m.border || '#E0E0E0';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.fillStyle = '#F8FAFC';
-            ctx.beginPath();
-            ctx.arc(x + 55, y + 65, 28, 0, Math.PI * 2);
-            ctx.fill();
+            if (t >= startTime) {
+                let progress = t <= endTime ? (t - startTime) / duration : 1.0;
+                
+                // Mátrix matek: Sorok és oszlopok számolása a 6 db kártya (3 oszlop, 2 sor) pozícionálásához
+                const col = i % 3; 
+                const row = Math.floor(i / 3); 
+                const x = startX + (col * (cardW + gap));
+                const y = currentY + (row * (cardH + gap));
+                
+                ctx.globalAlpha = progress; // A teljes kártyadoboz opacity áttűnése
+                
+                ctx.fillStyle = m.bg || '#FFFFFF';
+                ctx.beginPath();
+                if(ctx.roundRect) ctx.roundRect(x, y, cardW, cardH, 4);
+                else ctx.rect(x, y, cardW, cardH);
+                ctx.fill();
+                ctx.strokeStyle = m.border || '#E0E0E0';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#F8FAFC';
+                ctx.beginPath();
+                ctx.arc(x + 55, y + 65, 28, 0, Math.PI * 2);
+                ctx.fill();
 
-            ctx.font = '32px Arial, "Segoe UI Emoji", "Apple Color Emoji"';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#000000'; 
-            ctx.fillText(m.icon, x + 55, y + 76);
-            
-            ctx.textAlign = 'left';
-            ctx.fillStyle = '#777777';
-            ctx.font = '800 13px Arial, sans-serif';
-            ctx.fillText(m.title.toUpperCase(), x + 100, y + 55);
-            
-            ctx.fillStyle = '#1A1A1A';
-            
-            // Kifolyás védelem: Dinamikus Kártyaszöveg Zsugorító mechanika
-            ctx.font = '900 24px Arial, sans-serif';
-            if (ctx.measureText(m.val).width > 150) {
-                ctx.font = '900 20px Arial, sans-serif';
+                ctx.font = '32px Arial, "Segoe UI Emoji", "Apple Color Emoji"';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000000'; 
+                ctx.fillText(m.icon, x + 55, y + 76);
+                
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#777777';
+                ctx.font = '800 13px Arial, sans-serif';
+                ctx.fillText(m.title.toUpperCase(), x + 100, y + 55);
+                
+                let displayVal = m.val; 
+                if (t <= endTime) {
+                    let currentVal = m.rawVal * easeOutCubic(progress);
+                    if(m.val.includes('%')) {
+                        displayVal = Math.floor(currentVal) + "%"; // Százalék esetén egész szám (tizedes nélkül)
+                    } else {
+                        // Közbülső tizedesjegyek fixálása 2 tizedesre, hogy ne ugráljon vadul a pixelszélesség pörgés közben
+                        displayVal = currentVal.toFixed(2).replace('.', ',') + " " + m.unit;
+                    }
+                }
+
+                ctx.fillStyle = '#1A1A1A';
+                ctx.font = '900 24px Arial, sans-serif';
+                // Dinamikus betűméret-csökkentés túl hosszú számok (pl extrém nagy lekérdezések) esetén
+                if (ctx.measureText(displayVal).width > 150) {
+                    ctx.font = '900 20px Arial, sans-serif';
+                }
+                if (ctx.measureText(displayVal).width > 165) {
+                    ctx.font = '900 17px Arial, sans-serif';
+                }
+                ctx.fillText(displayVal, x + 100, y + 90);
+                
+                ctx.globalAlpha = 1.0; // ALPHA SZIVÁRGÁS VÉDELEM
             }
-            if (ctx.measureText(m.val).width > 165) {
-                ctx.font = '900 17px Arial, sans-serif';
-            }
-            ctx.fillText(m.val, x + 100, y + 90);
         });
+        
+        // --- FÁZIS 5: 3800ms - 7800ms (A VÉGÉIG) ---
+        // Nincs külön parancs blokk: a fenti if-ek (pl. t > 3100) mind a 1.0-s, azaz a végleges
+        // statikus képet adják vissza. Ilyenkor a kép "kitartva", fagyasztott állapotban van a felhasználó számára.
+    }
 
-        const footerY = height - 75;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#999999';
-        ctx.font = '600 18px Arial, sans-serif';
-        ctx.fillText('Készült az MI KHK Környezeti Hatás Kalkulátorával', width / 2, footerY);
-
+    /**
+     * STATIKUS KÉP EXPORTÁLÓ
+     * Visszafelé kompatibilis hívó a statikus PNG mentéshez. Pusztán beállítja a mester-idővonal 
+     * utolsó pillanatát (7800ms), így a `renderInfographicFrame` a teljesen kész, kifejtett képet rajzolja le.
+     */
+    function createInfographicCanvas() {
+        const data = getInfographicData();
+        const canvas = document.createElement('canvas');
+        canvas.width = data.width;
+        canvas.height = data.height;
+        const ctx = canvas.getContext('2d');
+        renderInfographicFrame(ctx, data, 7800); 
         return canvas;
     }
 
     /**
-     * Letöltés indítása natívan a HTML5 a[download] képességével.
+     * NATÍV BÖNGÉSZŐS LETÖLTÉS INDÍTÁSA
+     * Kihasználja a HTML5 <a> tag `download` képességét Blob és DataURL alapú forrásokhoz.
      */
-    function triggerDownload(canvas) {
-        const imageURL = canvas.toDataURL('image/png'); 
+    function triggerDownload(url, filename) {
         const downloadLink = document.createElement('a');
-        downloadLink.href = imageURL;
-        downloadLink.download = 'mikhk-mi-hatas.png';
+        downloadLink.href = url;
+        downloadLink.download = filename;
         document.body.appendChild(downloadLink);
         downloadLink.click(); 
         document.body.removeChild(downloadLink);
     }
 
-    // Export Gomb Logika
-    downloadBtn.addEventListener('click', () => {
-        const originalContent = downloadBtn.innerHTML;
-        downloadBtn.innerHTML = 'Készítés...'; 
-        downloadBtn.disabled = true;
+    // ==========================================================================
+    // 4. ANIMÁLT GIF KÉSZÍTŐ ÉS WEBSHARE API MOTOR
+    // ==========================================================================
 
-        setTimeout(() => {
+    /**
+     * CORS (Cross-Origin Resource Sharing) VÉDŐHÁLÓ
+     * Ha a script CMS rendszerekbe, hírportálokra (iframe) van beágyazva, egy direkt Web Worker
+     * hívás gyakran biztonsági hálót (CORS hibát) üt meg. Ehelyett a worker JS kódját fetch-eljük
+     * blobként a memóriába, és egy belső URL-t generálunk neki. Ezt imádják a böngészők.
+     */
+    async function getGifWorkerUrl() {
+        const res = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+    }
+
+    /**
+     * KÖZÖS GIF RENDERELŐ MOTOR (PROMISE-ALAPÚ)
+     * Kiszolgálja mind a "Mentés", mind a "Megosztás" gombot, és visszaadja a kirenderelt GIF Blobot.
+     */
+    function generateGifBlob(progressCallback) {
+        return new Promise(async (resolve, reject) => {
             try {
-                const canvas = createInfographicCanvas();
-                triggerDownload(canvas);
-            } catch (error) {
-                console.error('Hiba:', error);
-                alert('Sajnos hiba történt a kép mentésekor.');
-            } finally {
-                downloadBtn.innerHTML = originalContent; 
-                downloadBtn.disabled = false;
+                const data = getInfographicData();
+                const workerUrl = await getGifWorkerUrl();
+                
+                // --- KÉPMÉRET ÉS ÉLESSÉG OPTIMALIZÁCIÓ (DOWNSCALING) ---
+                // Az eredeti (1080px) vászon letárolása animált GIF formátumban tíz megabájtos fájlokat 
+                // generálna és lefagyasztaná a mobilt. Lekicsinyítjük 80%-ra (864px). 
+                // Így drasztikusan esik a fájlméret, de az olvashatóság megmarad.
+                const scaleFactor = 0.8;
+                const gifWidth = Math.floor(data.width * scaleFactor);
+                const gifHeight = Math.floor(data.height * scaleFactor);
+
+                const gif = new GIF({
+                    workers: Math.max(2, navigator.hardwareConcurrency || 4), // Dinamikus Többmagos CPU (Worker) kihasználás a gyorsasághoz
+                    quality: 8, // Színtömörítés mértéke. Kisebb szám = jobb színminőség és élesebb, "nem-szöszös" kontúrok
+                    workerScript: workerUrl,
+                    width: gifWidth,
+                    height: gifHeight
+                });
+
+                // 1. MESTER VÁSZON: Fő rajzoló vászon (eredeti, hatalmas felbontás a tűéles vektoros rajzoláshoz)
+                const masterCanvas = document.createElement('canvas');
+                masterCanvas.width = data.width;
+                masterCanvas.height = data.height;
+                const masterCtx = masterCanvas.getContext('2d');
+
+                // 2. KICSINYÍTETT VÁSZON: Kifejezetten a GIF képkockáknak létrehozva (csökkentett pixelszám)
+                const scaledCanvas = document.createElement('canvas');
+                scaledCanvas.width = gifWidth;
+                scaledCanvas.height = gifHeight;
+                const scaledCtx = scaledCanvas.getContext('2d');
+                // Magas minőségű képsimítás bekapcsolása kicsinyítéskor, hogy a szöveg éles maradjon
+                scaledCtx.imageSmoothingEnabled = true;
+                scaledCtx.imageSmoothingQuality = 'high';
+
+                // --- INTELLIGENS FRAME OPTIMALIZÁCIÓ ÉS VÁLTOZÓ KÉSLELTETÉS (TRÜKK) ---
+                // Nem rendereljük végig a teljes 7.8 mp-et képkockánként, mert az utolsó 4 másodperc
+                // már mozdulatlan! Csak a mozgásos 3400ms-ig készítünk 25 fps selymes frame-eket (85 db),
+                // majd az utolsó képkockának megadjuk, hogy álljon fagyva a képernyőn 4,4 másodpercig.
+                // Ezzel felére vágjuk a fájlméretet és a processzoridőt!
+                const activeDuration = 3400; 
+                const frameDelay = 40; // 40ms = 25fps (visszaállítja a selymes, sima mozgást akadás nélkül)
+                const totalFrames = Math.floor(activeDuration / frameDelay);
+
+                for (let i = 0; i <= totalFrames; i++) {
+                    const currentTime = i * frameDelay;
+                    
+                    // 1. Lépés: Tisztára törlés és megrajzoljuk a mester vászonra a grafikát
+                    masterCtx.clearRect(0, 0, masterCanvas.width, masterCanvas.height);
+                    renderInfographicFrame(masterCtx, data, currentTime);
+                    
+                    // 2. Lépés: Lekicsinyítjük (átrajzoljuk) a kész képet a GIF vászonra
+                    scaledCtx.clearRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                    scaledCtx.drawImage(masterCanvas, 0, 0, gifWidth, gifHeight);
+                    
+                    // 3. Lépés: Kiszámoljuk a késleltetést (Az utolsó frame extrém sokáig, 4.4 másodpercig marad!)
+                    const isLastFrame = (i === totalFrames);
+                    const currentDelay = isLastFrame ? 4400 : frameDelay;
+
+                    // 4. Lépés: Képkocka beküldése a memóriába a GIF kompresszornak
+                    gif.addFrame(scaledCanvas, { copy: true, delay: currentDelay });
+                }
+
+                // Visszajelzés a gomb felületére százalékosan
+                gif.on('progress', function(p) {
+                    if (progressCallback) progressCallback(p);
+                });
+
+                gif.on('finished', function(blob) {
+                    resolve(blob);
+                });
+
+                gif.render();
+            } catch (err) {
+                reject(err);
             }
-        }, 100);
+        });
+    }
+
+    // ==========================================================================
+    // EGYSÉGES MENTÉS GOMB LOGIKA (Figyeli a Kapcsolót: PNG vagy GIF lesz?)
+    // ==========================================================================
+    downloadBtn.addEventListener('click', async () => {
+        const originalContent = downloadBtn.innerHTML;
+        downloadBtn.disabled = true; // Duplakattintás védelem
+
+        try {
+            if (currentExportFormat === 'png') {
+                downloadBtn.innerHTML = 'Készítés...'; 
+                await sleep(50); // Apró UI altatás, hogy a felirat meg tudjon jelenni a gombon a befagyás előtt
+                const canvas = createInfographicCanvas();
+                const imageURL = canvas.toDataURL('image/png');
+                triggerDownload(imageURL, 'mikhk-mi-hatas.png');
+            } 
+            else if (currentExportFormat === 'gif') {
+                downloadBtn.innerHTML = 'Előkészítés...';
+                // Átadjuk a progressCallback függvényt, ami valós időben frissíti a gomb szövegét (pl "GIF: 34%...")
+                const blob = await generateGifBlob((p) => {
+                    downloadBtn.innerHTML = `GIF: ${Math.round(p * 100)}%...`;
+                });
+                const blobUrl = URL.createObjectURL(blob);
+                triggerDownload(blobUrl, 'mikhk-mi-hatas.gif');
+            }
+        } catch (error) {
+            console.error('Hiba a mentés során:', error);
+            alert('Sajnos hiba történt a mentéskor.');
+        } finally {
+            downloadBtn.innerHTML = originalContent; 
+            downloadBtn.disabled = false;
+        }
     });
 
-    // Megosztás Gomb Logika (Mobile Share API fallbackkel)
+    // ==========================================================================
+    // DINAMIKUS MEGOSZTÁS GOMB LOGIKA (Web Share API biztonsági hálóval iOS-re)
+    // ==========================================================================
     shareBtn.addEventListener('click', async () => {
         const originalContent = shareBtn.innerHTML;
-        shareBtn.innerHTML = 'Előkészítés...';
         shareBtn.disabled = true;
 
         try {
-            const canvas = createInfographicCanvas();
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
-                
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({
-                            title: 'MI KHK Hatás Kalkulátor',
-                            text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma!',
-                            files: [file]
-                        });
-                    } catch (shareError) {
-                        if (shareError.name !== 'AbortError') console.error('Hiba:', shareError);
-                    }
-                } else {
-                    alert('A böngésződ nem támogatja a közvetlen megosztást. A képet letöltjük!');
-                    triggerDownload(canvas);
-                }
-                shareBtn.innerHTML = originalContent;
-                shareBtn.disabled = false;
-            }, 'image/png');
+            let fileBlob;
+            let filename;
+            let mimeType;
+
+            // Formátumtól függően előkészítjük a Blobot (Memória adatcsomagot)
+            if (currentExportFormat === 'png') {
+                shareBtn.innerHTML = 'Előkészítés...';
+                await sleep(50);
+                const canvas = createInfographicCanvas();
+                fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                filename = 'mikhk-mi-hatas.png';
+                mimeType = 'image/png';
+            } 
+            else if (currentExportFormat === 'gif') {
+                shareBtn.innerHTML = 'Előkészítés...';
+                fileBlob = await generateGifBlob((p) => {
+                    shareBtn.innerHTML = `GIF: ${Math.round(p * 100)}%...`;
+                });
+                filename = 'mikhk-mi-hatas.gif';
+                mimeType = 'image/gif';
+            }
+
+            // Web-kompatibilis File objektum felépítése
+            const file = new File([fileBlob], filename, { type: mimeType });
+            
+            // Ha a böngésző támogatja a fájlmegosztást (Natív iOS Share / Android Share)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'MI KHK Hatás Kalkulátor',
+                    text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma!',
+                    files: [file]
+                });
+            } else {
+                // Ha desktop gép, vagy nem támogatott böngésző, automatikusan Letöltjük a fájlt.
+                alert('A böngésződ nem támogatja a közvetlen megosztást. A fájlt automatikusan letöltjük!');
+                triggerDownload(URL.createObjectURL(fileBlob), filename);
+            }
+
         } catch (error) {
-            alert('Hiba történt.');
+            // FALLBACK BIZTONSÁGI HÁLÓ (Kritikus!)
+            // Az iOS Safari sokszor elutasítja a navigator.share() hívást "AbortError" hivatkozással,
+            // ha a felhasználó kattintása és a share() API hívás között túl sok idő telt el. 
+            // Mivel a GIF renderelés hosszú (akár 3-10 másodperc), ez a blokk elkapja a hibát, 
+            // és a már fáradságosan kirenderelt GIF fájlt letöltésként megmenti a usernek!
+            if (error.name !== 'AbortError') {
+                console.error('Megosztás Hiba:', error);
+                alert('A mobil böngésző korlátozása miatt a közvetlen megosztás megszakadt. A fájlt biztonsági okokból letöltjük!');
+                
+                // Fallback (B terv) indítása: Mivel a Blob generálása sikeres volt, csak a megosztó panel dobta el az API-t.
+                if (fileBlob) {
+                    triggerDownload(URL.createObjectURL(fileBlob), filename);
+                }
+            }
+        } finally {
             shareBtn.innerHTML = originalContent;
             shareBtn.disabled = false;
         }
     });
 
     // ==========================================================================
-    // 4. MOBIL ÉRINTÉSKEZELÉS ÉS DINAMIKUS TOOLTIP LOGIKA
-    // Megakadályozza, hogy a felugró infóablak kilógjon a képernyőről.
+    // 5. MOBIL ÉRINTÉSKEZELÉS ÉS KIFOLYÁSGÁTLÓ CSS TOOLTIP LOGIKA
+    // Megakadályozza, hogy a felugró infóablak kilógjon a képernyő szélén.
     // ==========================================================================
     
     function checkTooltipBounds(badge) {
         const rect = badge.getBoundingClientRect();
+        // A teljes widget szegélyeit vesszük figyelembe referenciapontként
         const container = document.getElementById('calculatorApp').getBoundingClientRect();
         
         const tooltipMaxWidth = 210; 
         const halfWidth = tooltipMaxWidth / 2;
         const badgeCenter = rect.left + (rect.width / 2); 
         
-        // Ha kilóg jobb oldalt -> balra toljuk
+        // Ha a tooltip jobbra kilógna az ablakból, balra toljuk a CSS változón (var(--tt-x)) keresztül
         if (badgeCenter + halfWidth > container.right - 10) {
             badge.style.setProperty('--tt-x', '-85%');
-        // Ha kilóg bal oldalt -> jobbra toljuk
+        // Ha balra lógna ki, jobbra toljuk a belsejét
         } else if (badgeCenter - halfWidth < container.left + 10) {
             badge.style.setProperty('--tt-x', '-15%');
-        // Kényelmesen elfér -> középen marad
+        // Kényelmesen elfér középen -> visszaáll az alapértelmezett, szimmetrikus állásra
         } else {
             badge.style.setProperty('--tt-x', '-50%');
         }
     }
 
-    // Hover esemény asztali gépekre
+    // Hover esemény asztali gépekre (Egér)
     document.querySelectorAll('.info-badge').forEach(badge => {
         badge.addEventListener('mouseenter', () => checkTooltipBounds(badge));
     });
 
-    // Globális kattintásfigyelő (mobil érintésre és tooltip bezárásra)
+    // Globális kattintásfigyelő (Mobil érintésre optimializálva, és a nyitott tooltip bezárására bárhová kattintva)
     document.addEventListener('click', function(e) {
         const clickedBadge = e.target.closest('.info-badge');
         const allBadges = document.querySelectorAll('.info-badge');
         const allCards = document.querySelectorAll('.metric-card');
 
         if (clickedBadge) {
-            // Bezárjuk a többit
+            // Először minden másikat bezárunk (Egyidőben csak egy lehet nyitva)
             const wasActive = clickedBadge.classList.contains('active-tip');
             allBadges.forEach(badge => badge.classList.remove('active-tip'));
             allCards.forEach(card => card.classList.remove('active-card'));
             
-            // Kinyitjuk az aktuálisat (és adunk neki Z-index prioritást)
+            // Kinyitjuk az aktuálisat (és adunk a szülőkártyának egy Z-index prioritást, hogy felülre kerüljön)
             if (!wasActive) {
                 clickedBadge.classList.add('active-tip');
                 clickedBadge.closest('.metric-card').classList.add('active-card');
                 checkTooltipBounds(clickedBadge); 
             }
         } else {
-            // Ha máshova kattintott, mindent bezárunk
+            // Ha máshova kattintott az oldalon (üres helyre), mindent bezárunk (Escape funkció)
             allBadges.forEach(badge => badge.classList.remove('active-tip'));
             allCards.forEach(card => card.classList.remove('active-card'));
         }
