@@ -427,7 +427,7 @@
     
     .export-actions {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.75rem;
         width: 100%;
     }
@@ -744,6 +744,14 @@
                         </div>
                     </div>
                     
+                    <button id="copyBtn" class="export-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Másolás
+                    </button>
+                    
                     <button id="downloadBtn" class="export-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -763,10 +771,6 @@
                         </svg>
                         Megosztás
                     </button>
-                    
-                    <div id="gifWarning" style="display: none; grid-column: 1 / -1; text-align: center; font-size: 0.8rem; color: var(--brand-orange); font-weight: bold; margin-top: 0.25rem;">
-                        ⏳ A GIF renderelése (főleg megosztáshoz) néhány másodpercet is igénybe vehet. Kérjük, légy türelemmel!
-                    </div>
                 </div>
             </div>
         </div>
@@ -796,14 +800,17 @@
     let isGeneratingGif = false;      // Megakadályozza a párhuzamos generálást
     let hasCalculated = false;        // Jelzi, ha történt már számítás (Fókusz törlés védelem)
 
+    // Előre letárolt Base64 QR kód a megosztott képek jobb alsó sarkába
+    const qrCodeImage = new Image();
+    qrCodeImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABaElEQVRIib2WMa6DMBBEF7lw6SP4JuRiKBBxMbiJj7AlBWL/jAF9IqVccJP4UYy9Hs9a5MfozUyDSpYX/nC2uLNOpNGeky19lLMbWLZZg62yYE/K2U2MunFWkRuZpNGk/db1ZKxflwaxDQ641NSRVR90aSxLizO6eMORHaODbjL9srUbg9Jsdcz6rvL+LBSb0qh9wZ2BsrF+TzC6gbfV4obDC6Vu3plxwH1Wak37ul9vFljOEZmzNPrGd5v82aG8npnJ+nmz6g3oStyksTVT15sJA426nMB/0vqzLi+vmmuX+rkzQRCsac3SJh5XrLnmzKgbFFfHbEA147kWV4bDCZjGCbmGttk+xIQN2gZe2Q/3u/dpV7YHqO6foGs3sKMvDDkiDdjfJnFntb/J3nuoy2W4M/Zp9Dd6vGH9tptYzzdNY/CB/L9BnBn7NPJ54E26rMWN1fcf/IzwP37c2e4DOTMnx+kZ9mP8Ac9OkiYKKBY8AAAAAElFTkSuQmCC';
+
     function resetExportState() {
         preRenderedExportFile = null;
         isGeneratingGif = false;
         
         const shareBtn = document.getElementById('shareBtn');
+        const copyBtn = document.getElementById('copyBtn');
         const downloadBtn = document.getElementById('downloadBtn');
-        const gifWarning = document.getElementById('gifWarning');
-        
         if (shareBtn) {
             shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Megosztás`;
             shareBtn.style.backgroundColor = '';
@@ -814,6 +821,31 @@
         
         if (downloadBtn) {
             downloadBtn.disabled = false;
+        }
+        
+        if (copyBtn) {
+            const activeToggle = document.querySelector('.toggle-btn.active');
+            const format = activeToggle ? activeToggle.getAttribute('data-format') : 'png';
+            const exportActionsContainer = copyBtn.closest('.export-actions');
+            
+            if (format === 'gif') {
+                copyBtn.style.display = 'inline-flex';
+                copyBtn.disabled = true;
+                copyBtn.innerHTML = `⏳ Indítás...`;
+                copyBtn.style.opacity = '1';
+                copyBtn.style.cursor = 'wait';
+                copyBtn.title = "A GIF készül a háttérben. Másolás GIF esetén nem elérhető.";
+            } else {
+                copyBtn.style.display = 'inline-flex';
+                copyBtn.disabled = false;
+                copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Másolás`;
+                copyBtn.style.opacity = '';
+                copyBtn.style.cursor = '';
+                copyBtn.title = "";
+            }
+            copyBtn.style.backgroundColor = '';
+            copyBtn.style.color = '';
+            copyBtn.style.borderColor = '';
         }
     }
 
@@ -1329,8 +1361,8 @@
     // ==========================================================================
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
+    const copyBtn = document.getElementById('copyBtn');
     const formatBtns = document.querySelectorAll('.toggle-btn');
-    const gifWarning = document.getElementById('gifWarning');
     
     let currentExportFormat = 'png'; // Alapértelmezett beállítás
 
@@ -1354,10 +1386,14 @@
                 // Letiltjuk a gombokat és indítjuk az azonnali háttér-generálást
                 downloadBtn.disabled = true;
                 shareBtn.disabled = true;
+                if (copyBtn) copyBtn.disabled = true;
                 
-                gifWarning.style.display = 'block';
-                gifWarning.style.color = 'var(--brand-orange)';
-                gifWarning.innerText = '⏳ GIF előkészítése a háttérben: 0%...';
+                if (copyBtn) {
+                    copyBtn.disabled = true;
+                    copyBtn.innerHTML = '⏳ 0%';
+                    copyBtn.style.color = 'var(--brand-orange)';
+                    copyBtn.style.borderColor = 'var(--brand-orange)';
+                }
                 
                 // UI DÖCCENÉS GÁTLÓ: Hagyunk 50 milliszekundumot a böngészőnek arra,
                 // hogy VIZUÁLISAN is kirajzolja a gombok szürkülését és a fenti "⏳ GIF..." szöveget, 
@@ -1366,28 +1402,34 @@
                 
                 try {
                     const blob = await generateGifBlob((p) => {
-                        gifWarning.innerText = `⏳ GIF előkészítése a háttérben: ${Math.round(p * 100)}%...`;
+                        if (copyBtn) copyBtn.innerHTML = `⏳ ${Math.round(p * 100)}%`;
                     });
                     
                     preRenderedExportFile = new File([blob], 'mikhk-mi-hatas.gif', { type: 'image/gif' });
                     
-                    gifWarning.style.color = '#2e7d32'; // Sötétzöld siker üzenet
-                    gifWarning.innerText = '✅ GIF sikeresen előkészítve! Mehet az instant export.';
+                    if (copyBtn) {
+                        copyBtn.style.color = '#2e7d32'; // Sötétzöld siker üzenet
+                        copyBtn.style.borderColor = '#2e7d32';
+                        copyBtn.innerHTML = '✅ Kész!';
+                        copyBtn.title = "A GIF sikeresen legenerálva. Használd a letöltést vagy megosztást!";
+                        copyBtn.style.cursor = 'default';
+                    }
                     
                     // Gombok újra engedélyezése
                     downloadBtn.disabled = false;
                     shareBtn.disabled = false;
                 } catch (error) {
                     console.error('GIF generálási hiba:', error);
-                    gifWarning.style.color = '#D13E0E'; // Piros hiba üzenet
-                    gifWarning.innerText = '❌ Hiba történt a GIF generálása közben.';
+                    if (copyBtn) {
+                        copyBtn.style.color = '#D13E0E'; // Piros hiba üzenet
+                        copyBtn.style.borderColor = '#D13E0E';
+                        copyBtn.innerHTML = '❌ Hiba';
+                    }
                     downloadBtn.disabled = false;
                     shareBtn.disabled = false;
                 } finally {
                     isGeneratingGif = false;
                 }
-            } else {
-                gifWarning.style.display = 'none';
             }
         });
     });
@@ -1450,7 +1492,8 @@
         const wrappedPromptLines = getCanvasLines(ctx, promptText, 780);
         // Dinamikus magasság számítása: minél hosszabb a szöveg, annál magasabb lesz a végleges kép
         const promptBoxHeight = Math.max(140, wrappedPromptLines.length * 42 + 80);
-        const height = promptBoxHeight + 1150; 
+        // Megnövelt vászonmagasság, hogy a QR kódnak és a szövegeknek legyen elegáns térközük
+        const height = promptBoxHeight + 1200; 
 
         return {
             promptText, outTokens, totEnergyStr: totEnergyStr + " " + totEnergyUnit, totEnergyRaw, totEnergyUnit, infoText, metrics,
@@ -1508,12 +1551,6 @@
         ctx.font = '900 90px Georgia, serif';
         ctx.textAlign = 'left';
         ctx.fillText('"', 130, promptY + 85);
-        
-        const footerY = height - 75;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#999999';
-        ctx.font = '600 18px Arial, sans-serif';
-        ctx.fillText('Készült az MI KHK Környezeti Hatás Kalkulátorával', width / 2, footerY);
 
         // --- FÁZIS 1: Írógép effektus szimulálása a Canvasen (300ms - 1600ms) ---
         let charsToShow = 0;
@@ -1677,6 +1714,65 @@
         // --- FÁZIS 5: 3800ms - 7800ms (A VÉGÉIG) ---
         // Nincs külön parancs blokk: a fenti if-ek (pl. t > 3100) mind a 1.0-s, azaz a végleges
         // statikus képet adják vissza. Ilyenkor a kép "kitartva", fagyasztott állapotban van a felhasználó számára.
+        
+        // --- QR KÓD ÉS CALL-TO-ACTION (Kártya stílusú doboz a Vízforralás alatt) ---
+        if (qrCodeImage.complete) {
+            const boxW = 273;
+            const boxH = 130; // Pontosan akkora, mint egy metrika kártya
+            const boxX = 706; // 3. oszlop kezdete
+            const boxY = data.promptBoxHeight + 965;
+            
+            if (t >= 2800) {
+                ctx.globalAlpha = Math.min(1.0, (t - 2800) / 400);
+                
+                // Kártya stílusú háttér (fehér, szürke kerettel, mint a többi kártya)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                if(ctx.roundRect) ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+                else ctx.rect(boxX, boxY, boxW, boxH);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#E5E7EB';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // QR kód a doboz jobb oldalán
+                const qrSize = 80; // Kicsit kisebb, hogy több hely legyen a szövegnek
+                const qrX = boxX + boxW - qrSize - 15; // 15px jobboldali margó
+                const qrY = boxY + (boxH - qrSize) / 2;
+                ctx.drawImage(qrCodeImage, qrX, qrY, qrSize, qrSize);
+                
+                // Szöveg a doboz bal oldalán
+                ctx.textAlign = 'left';
+                
+                // PRÓBÁLD KI (Kisebb, narancssárga kiemeléssel)
+                ctx.fillStyle = '#EA4C15';
+                ctx.font = '900 19px Arial, sans-serif';
+                ctx.fillText('PRÓBÁLD KI', boxX + 18, boxY + 58);
+                
+                // TE IS! (Sötét, hangsúlyos)
+                ctx.fillStyle = '#1A1A1A';
+                ctx.font = '900 24px Arial, sans-serif';
+                ctx.fillText('TE IS!', boxX + 18, boxY + 86);
+                
+                // --- BAL OLDALI DISCLAIMER SZEKCIÓ ---
+                // Az üres tér kitöltése a CTA doboz bal oldalán egy elegáns, 3 soros magyarázattal
+                const disclaimerX = 100;
+                
+                // Főcím (Készült...)
+                ctx.fillStyle = '#777777';
+                ctx.font = '800 17px Arial, sans-serif';
+                ctx.fillText('Készült az MI Környezeti Hatás Kalkulátorral', disclaimerX, boxY + 44);
+                
+                // Magyarázó szövegek (Kisebb, vékonyabb)
+                ctx.fillStyle = '#999999';
+                ctx.font = '400 14px Arial, sans-serif';
+                ctx.fillText('Az értékek iparági átlagokon (PUE, WUE) és szerver statisztikákon alapuló becslések.', disclaimerX, boxY + 70);
+                ctx.fillText('A valós lábnyom az adatközpont földrajzi helyétől és hűtési technológiájától függően eltérhet.', disclaimerX, boxY + 92);
+                
+                ctx.globalAlpha = 1.0;
+            }
+        }
     }
 
     /**
@@ -1892,7 +1988,7 @@
             if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
                 await navigator.share({
                     title: 'MI KHK Hatás Kalkulátor',
-                    text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma!',
+                    text: 'Nézd meg, mekkora az MI lekérdezésem fizikai lábnyoma! Próbáld ki te is: https://baloghmartin.github.io/ai-eco-calculator/',
                     files: [shareFile]
                 });
             } else {
@@ -1915,6 +2011,60 @@
             calculatorApp.style.opacity = '';
         }
     });
+
+    // ==========================================================================
+    // VÁGÓLAPRA MÁSOLÁS GOMB LOGIKA
+    // ==========================================================================
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const originalContent = copyBtn.innerHTML;
+            copyBtn.disabled = true;
+            let copyFile = null;
+
+            try {
+                if (currentExportFormat === 'png') {
+                    calculatorApp.style.pointerEvents = 'none';
+                    calculatorApp.style.opacity = '0.7';
+                    copyBtn.innerHTML = 'Másolás...';
+                    await sleep(50);
+                    const canvas = createInfographicCanvas();
+                    if(!canvas) throw new Error("Canvas készítése sikertelen.");
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    copyFile = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
+                } 
+                else if (currentExportFormat === 'gif' && preRenderedExportFile) {
+                    copyFile = preRenderedExportFile;
+                } else {
+                    throw new Error("Hiányzó export fájl.");
+                }
+
+                if (navigator.clipboard && navigator.clipboard.write) {
+                    const item = new ClipboardItem({ [copyFile.type]: copyFile });
+                    await navigator.clipboard.write([item]);
+                    
+                    // Siker visszajelzés
+                    copyBtn.innerHTML = '✔ Másolva';
+                    copyBtn.style.backgroundColor = '#2e7d32'; // Zöld
+                    copyBtn.style.color = 'white';
+                    copyBtn.style.borderColor = '#2e7d32';
+                    await sleep(2000);
+                } else {
+                    alert('A böngésződ nem támogatja a közvetlen vágólapra másolást. Próbáld meg a letöltést!');
+                }
+            } catch (error) {
+                console.error('Másolás Hiba:', error);
+                alert('A vágólapra másolás sikertelen (lehet, hogy a böngésződ blokkolja ezt a funkciót, vagy nem támogatja a GIF formátumot). Használd a letöltést!');
+            } finally {
+                copyBtn.innerHTML = originalContent;
+                copyBtn.style.backgroundColor = '';
+                copyBtn.style.color = '';
+                copyBtn.style.borderColor = '';
+                copyBtn.disabled = false;
+                calculatorApp.style.pointerEvents = '';
+                calculatorApp.style.opacity = '';
+            }
+        });
+    }
 
     // ==========================================================================
     // 5. MOBIL ÉRINTÉSKEZELÉS ÉS EXKLUZÍV TOOLTIP LOGIKA
