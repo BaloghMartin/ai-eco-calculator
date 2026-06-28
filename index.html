@@ -87,6 +87,29 @@
         padding-left: 15px;
     }
 
+    /* Téma (Sötét/Világos) választó gomb */
+    .theme-toggle {
+        margin-left: auto; /* Teljesen jobbra tolja */
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        transition: background-color 0.2s, transform 0.2s;
+    }
+    .theme-toggle:hover { background-color: rgba(255,255,255,0.1); transform: scale(1.1); }
+    
+    /* Ikonok dinamikus megjelenítése téma alapján */
+    .theme-toggle .icon-moon { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-moon { display: inline-block; }
+
     .calc-content { padding: 2rem; }
     
     /* Főcímek és alcímek */
@@ -145,7 +168,7 @@
         border-radius: 0;
     }
     .context-in-input .media-summary { padding: 0.75rem 0.5rem 0.25rem 0.5rem; font-size: 0.85rem; }
-    .context-in-input .media-details-content { padding: 0.5rem 0.5rem 0.25rem 0.5rem; }
+    .context-in-input .media-details-content { padding: 0.5rem 0.5rem 1rem 0.5rem; }
     .context-in-input .media-card { background: #FFFFFF; } /* Kiemelkedik a szürke input háttérből */
 
     .input-bottom-row {
@@ -486,8 +509,56 @@
         .metrics-grid { grid-template-columns: 1fr; }
         
         /* Export gombok is egymás alá kerülnek kis képernyőn */
-        .export-actions { grid-template-columns: 1fr; gap: 0.5rem; }
     }
+    
+    /* ==========================================================================
+       11. SÖTÉT MÓD (DARK MODE) TÁMOGATÁS
+       ========================================================================== */
+    [data-theme="dark"] {
+        --brand-black: #121212;
+        --brand-dark-gray: #E0E0E0;
+        --bg-color: #1E1E1E;
+        --card-bg: #2C2C2C;
+        --text-main: #F5F5F5;
+        --text-muted: #A0A0A0;
+        --border-color: #3A3A3A;
+        --input-bg: #262626;
+        --metric-bg: #242424;
+        --metric-border: #383838;
+        --accent-bg: #3E241B;
+    }
+    
+    [data-theme="dark"] body { background-color: #0F0F0F; }
+    
+    [data-theme="dark"] .media-card { background: var(--input-bg); }
+    [data-theme="dark"] .context-in-input .media-card { background: var(--card-bg); }
+    [data-theme="dark"] .input-bottom-row { border-top-color: var(--border-color); }
+    [data-theme="dark"] .media-summary:hover { background-color: #333333; }
+    [data-theme="dark"] .random-btn:hover { background-color: #333333; border-color: var(--border-color); }
+    
+    /* Hardcoded szürkék felülírása sötét módra */
+    [data-theme="dark"] .media-details[open] { border-color: #666666; }
+    [data-theme="dark"] .radio-label:hover .radio-btn:not(.checked) { border-color: #666666; }
+    [data-theme="dark"] .media-card:hover { border-color: #666666; }
+    [data-theme="dark"] .metric-card.active-card { border-color: #777777; }
+    [data-theme="dark"] .metric-unit { background-color: #333333; color: #CCCCCC; }
+    
+    [data-theme="dark"] .metric-card.cooling-card { background-color: #1B2936; border-color: #263C52; }
+    [data-theme="dark"] .metric-card.cooling-card.active-card { border-color: #3B5A75; }
+    
+    [data-theme="dark"] .info-badge { background-color: #333333; color: #EFEFEF; }
+    [data-theme="dark"] .info-badge:hover, 
+    [data-theme="dark"] .info-badge.active-tip { background-color: var(--brand-orange); color: #FFFFFF; }
+    [data-theme="dark"] .info-badge::after { background-color: #222222; border: 1px solid #444; }
+    [data-theme="dark"] .info-badge::before { border-color: #222222 transparent transparent transparent; }
+    
+    [data-theme="dark"] .thinking-state { background: #121212; border: 1px solid #333; border-left: 4px solid var(--brand-orange); }
+    [data-theme="dark"] .export-btn { color: var(--text-main); border-color: var(--border-color); }
+    [data-theme="dark"] .export-btn:hover { background-color: var(--border-color); }
+    
+    /* A megosztás gomb legyen picit szebb feketén */
+    [data-theme="dark"] .share-btn { background-color: var(--brand-orange); color: white; border-color: var(--brand-orange); }
+    [data-theme="dark"] .share-btn:hover { background-color: var(--brand-orange-hover); }
 </style>
 </head>
 <body>
@@ -496,6 +567,10 @@
     <div class="brand-header">
         <div class="brand-logo">MI KHK</div>
         <div class="brand-section">Tudomány</div>
+        <button id="themeToggle" class="theme-toggle" title="Sötét / Világos mód váltása">
+            <span class="icon-sun">☀️</span>
+            <span class="icon-moon">🌙</span>
+        </button>
     </div>
 
     <div class="calc-content">
@@ -507,7 +582,7 @@
         <div class="section-label">1. Bemenet (Prompt és Csatolmányok)</div>
         
         <div class="chat-input-wrapper">
-            <textarea id="aiPrompt" placeholder="Írd ide a promptot..."></textarea>
+            <textarea id="aiPrompt" placeholder="Írd ide a promptot..." maxlength="5000"></textarea>
             
             <details class="media-details context-in-input" id="contextSelectorContainer">
                 <summary class="media-summary">
@@ -567,7 +642,7 @@
             </details>
 
             <div class="input-bottom-row">
-                <div class="char-count"><span id="charCount">0</span> karakter</div>
+                <div class="char-count"><span id="charCount">0</span> / 5000 karakter</div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button id="randomBtn" class="random-btn" title="Véletlenszerű példa betöltése">🎲</button>
                     <button id="calcBtn" class="send-btn" title="Hatás Kiszámítása">
@@ -895,6 +970,9 @@
      * API hívás helyett nyelvészeti és matematikai szabályokkal szimulálja az LLM működését.
      */
     function calculateTokens(text, contextType, selectedModel) {
+        // Biztonsági védelem nagyon hosszú bedobott szövegek ellen (Regex fagyás elkerülése)
+        if (text.length > 5000) text = text.substring(0, 5000);
+        
         const rawCharCount = text.length;
         const rawWordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
         
@@ -1037,6 +1115,42 @@
     const contextSummaryText = document.getElementById('contextSummaryText');
 
     const exportSection = document.getElementById('exportSection');
+    
+    // Téma kezelő (Sötét / Világos mód)
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    
+    themeToggleBtn.addEventListener('click', () => {
+        let currentTheme = document.documentElement.getAttribute('data-theme');
+        let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+
+    // Mobilbarát Tooltip logika (kattintásos megjelenítés hover helyett/mellett)
+    const infoBadges = document.querySelectorAll('.info-badge');
+    infoBadges.forEach(badge => {
+        badge.addEventListener('click', (e) => {
+            // Bezárjuk az összes többit
+            infoBadges.forEach(b => {
+                if (b !== badge) b.classList.remove('active-tip');
+            });
+            // Váltjuk az aktuálisat
+            badge.classList.toggle('active-tip');
+            e.stopPropagation(); // Ne adja át a kattintást a dokumentumnak
+        });
+    });
+    // Bárhova máshova kattintva bezárjuk
+    document.addEventListener('click', () => {
+        infoBadges.forEach(b => b.classList.remove('active-tip'));
+    });
 
     let hasEditedPrompt = false; 
     let defaultPrompt = ""; 
@@ -1090,6 +1204,7 @@
         if (aiPrompt.value === defaultPrompt && !hasCalculated) {
             aiPrompt.value = ''; 
             charCountDisplay.textContent = '0';
+            charCountDisplay.style.color = '';
             
             // Értékek visszaállítása alaphelyzetbe
             document.querySelector('input[name="mediaType"][value="none"]').checked = true;
@@ -1125,6 +1240,7 @@
         contextRadio.click(); 
         
         charCountDisplay.textContent = aiPrompt.value.length;
+        charCountDisplay.style.color = '';
     }
     
     // Azonnali végrehajtás betöltéskor
@@ -1152,7 +1268,15 @@
 
     // Karakter számláló frissítése
     aiPrompt.addEventListener('input', () => {
-        charCountDisplay.textContent = aiPrompt.value.length;
+        const len = aiPrompt.value.length;
+        charCountDisplay.textContent = len;
+        
+        if (len >= 5000) {
+            charCountDisplay.style.color = '#EA4C15';
+        } else {
+            charCountDisplay.style.color = '';
+        }
+        
         if (!hasEditedPrompt) hasEditedPrompt = true; 
     });
 
@@ -1495,9 +1619,18 @@
         // Megnövelt vászonmagasság, hogy a QR kódnak és a szövegeknek legyen elegáns térközük
         const height = promptBoxHeight + 1200; 
 
+        ctx.font = '700 18px Arial, sans-serif';
+        let infoTextWidth = ctx.measureText(infoText).width;
+        let infoTextFont = '700 18px Arial, sans-serif';
+        if (infoTextWidth > 800) {
+            infoTextFont = '700 15px Arial, sans-serif';
+            ctx.font = infoTextFont;
+            infoTextWidth = ctx.measureText(infoText).width;
+        }
+
         return {
             promptText, outTokens, totEnergyStr: totEnergyStr + " " + totEnergyUnit, totEnergyRaw, totEnergyUnit, infoText, metrics,
-            width, height, promptBoxHeight, wrappedPromptLines
+            width, height, promptBoxHeight, wrappedPromptLines, infoTextWidth, infoTextFont
         };
     }
 
@@ -1509,7 +1642,7 @@
     function renderInfographicFrame(ctx, data, t) {
         if (!data) return; // Ha valamiért nincs adat, biztonsági kilépés
 
-        const { width, height, promptBoxHeight, wrappedPromptLines, promptText, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics } = data;
+        const { width, height, promptBoxHeight, wrappedPromptLines, promptText, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics, infoTextWidth, infoTextFont } = data;
 
         // --- ALAP (0-tól végig): Sötét háttér, Fehér főkártya, Fejléc, Idézetdoboz és Lábléc ---
         ctx.fillStyle = '#1A1A1A'; // Vágókép/margó
@@ -1586,14 +1719,9 @@
             let alpha = t <= 1900 ? (t - 1600) / 300 : 1.0;
             
             ctx.globalAlpha = alpha; // Alpha állítása az opacity (áttűnés) hatás eléréséhez
+            ctx.font = infoTextFont;
             
-            ctx.font = '700 18px Arial, sans-serif';
-            let measuredTextWidth = ctx.measureText(infoText).width;
-            if (measuredTextWidth > 800) {
-                ctx.font = '700 15px Arial, sans-serif'; // Ha túl hosszú (pl pdf csatolás miatt), picit zsugorítjuk
-                measuredTextWidth = ctx.measureText(infoText).width;
-            }
-            const capsuleWidth = measuredTextWidth + 60; 
+            const capsuleWidth = infoTextWidth + 60; 
 
             ctx.fillStyle = '#1A1A1A';
             ctx.beginPath();
