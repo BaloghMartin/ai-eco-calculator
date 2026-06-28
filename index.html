@@ -1266,7 +1266,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <div class="media-card">
                                 <span class="media-emoji">🎨</span>
                                 <span class="media-title">Kép</span>
-                                <span class="media-desc">+ 1 db illusztráció</span>
+                                <span class="media-desc">+ illusztráció</span>
                             </div>
                         </label>
                         <label class="media-card-label">
@@ -1274,7 +1274,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <div class="media-card">
                                 <span class="media-emoji">🎙️</span>
                                 <span class="media-title">Hang</span>
-                                <span class="media-desc">1 perc podcast</span>
+                                <span class="media-desc">+ podcast</span>
                             </div>
                         </label>
                         <label class="media-card-label">
@@ -1282,7 +1282,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <div class="media-card">
                                 <span class="media-emoji">🎬</span>
                                 <span class="media-title">Videó</span>
-                                <span class="media-desc">5 mp HD klip</span>
+                                <span class="media-desc">+ HD klip</span>
                             </div>
                         </label>
                     </div>
@@ -1791,7 +1791,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     const desc = card.querySelector('.media-desc').textContent;
 
                     summaryIcon.textContent = emoji;
-                    summaryText.textContent = `Kimenet: ${title} (${desc.replace('+ ', '+')})`;
+                    summaryText.textContent = `Kimenet: ${title} (${desc})`;
                     mediaSelectorContainer.removeAttribute('open'); // Zárja be az harmonikát mindenképp
                 }
             });
@@ -2236,9 +2236,9 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
             // Média és kontextus metaadatok összefűzése a fekete kapszulába
             let mediaText = '';
-            if (mediaType === 'image') mediaText = ' | KIMENET: +1 KÉP';
-            else if (mediaType === 'podcast') mediaText = ' | KIMENET: +1P PODCAST';
-            else if (mediaType === 'video') mediaText = ' | KIMENET: +5MP VIDEÓ';
+            if (mediaType === 'image') mediaText = ' | KIMENET: + KÉP';
+            else if (mediaType === 'podcast') mediaText = ' | KIMENET: + PODCAST';
+            else if (mediaType === 'video') mediaText = ' | KIMENET: + VIDEÓ';
 
             let contextText = '';
             if (contextType === 'article') contextText = ' | BEMENET: CIKK';
