@@ -87,7 +87,7 @@
         padding-left: 15px;
     }
 
-    /* Téma (Sötét/Világos) választó gomb */
+    /* Téma (Sötét/Világos) választó gomb - Érintőképernyőre optimalizálva (44x44px) */
     .theme-toggle {
         margin-left: auto; /* Teljesen jobbra tolja */
         background: transparent;
@@ -98,8 +98,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         transition: background-color 0.2s, transform 0.2s;
     }
@@ -495,6 +495,8 @@
         .radio-btn { font-size: 0.75rem; padding: 0.5rem 0.1rem; }
         .radio-btn .emoji { font-size: 1.1rem; }
         .model-selector { gap: 0.35rem; }
+        
+        .input-bottom-row { flex-wrap: wrap; }
         
         /* A grid kártyákat 2 oszloposra szűkítjük mobil nézetben */
         .media-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -1961,10 +1963,10 @@
                 const workerUrl = await getGifWorkerUrl();
                 
                 // --- KÉPMÉRET ÉS ÉLESSÉG OPTIMALIZÁCIÓ (DOWNSCALING) ---
-                // Az eredeti (1080px) vászon letárolása animált GIF formátumban tíz megabájtos fájlokat 
-                // generálna és lefagyasztaná a mobilt. Lekicsinyítjük 80%-ra (864px). 
-                // Így drasztikusan esik a fájlméret, de az olvashatóság megmarad.
-                const scaleFactor = 0.8;
+                // Mobil eszközök memóriájának (RAM) védelme érdekében kisebb képernyőn 
+                // drasztikusabban skálázunk (0.5), míg asztali gépen marad a 0.8.
+                const isMobile = window.innerWidth <= 600;
+                const scaleFactor = isMobile ? 0.5 : 0.8;
                 const gifWidth = Math.floor(data.width * scaleFactor);
                 const gifHeight = Math.floor(data.height * scaleFactor);
 
