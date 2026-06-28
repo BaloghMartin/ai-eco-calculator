@@ -1776,6 +1776,16 @@
                 const frameDelay = 40; // 40ms = 25fps (visszaállítja a selymes, sima mozgást akadás nélkül)
                 const totalFrames = Math.floor(activeDuration / frameDelay);
 
+                // --- INTRO FRAME (POSTER FRAME) MEGOSZTÁSHOZ ---
+                // A Facebook Messenger (és sok más app) a megosztásnál statikus képpé butítja a GIF-et, 
+                // és csak a legelső képkockát mutatja. Ha ez üres, a megosztásnál egy majdnem üres kép jelenik meg.
+                // Ennek elkerülésére legelőször bedobjuk a TELJESEN KÉSZ, utolsó állapotot egy szinte láthatatlan (20ms) késleltetéssel.
+                masterCtx.clearRect(0, 0, masterCanvas.width, masterCanvas.height);
+                renderInfographicFrame(masterCtx, data, activeDuration);
+                scaledCtx.clearRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                scaledCtx.drawImage(masterCanvas, 0, 0, gifWidth, gifHeight);
+                gif.addFrame(scaledCanvas, { copy: true, delay: 20 });
+
                 for (let i = 0; i <= totalFrames; i++) {
                     const currentTime = i * frameDelay;
                     
