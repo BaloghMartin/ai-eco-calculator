@@ -2155,41 +2155,55 @@
         copyBtn.addEventListener('click', async () => {
             const originalContent = copyBtn.innerHTML;
             copyBtn.disabled = true;
-            let copyFile = null;
 
             try {
+                if (!navigator.clipboard || !navigator.clipboard.write) {
+                    alert('A böngésződ nem támogatja a közvetlen vágólapra másolást. Próbáld meg a letöltést!');
+                    return;
+                }
+
                 if (currentExportFormat === 'png') {
                     calculatorApp.style.pointerEvents = 'none';
                     calculatorApp.style.opacity = '0.7';
                     copyBtn.innerHTML = 'Másolás...';
-                    await sleep(50);
-                    const canvas = createInfographicCanvas();
-                    if(!canvas) throw new Error("Canvas készítése sikertelen.");
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                    copyFile = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
-                } 
-                else if (currentExportFormat === 'gif' && preRenderedExportFile) {
-                    copyFile = preRenderedExportFile;
+
+                    // Safari (iOS) igénye: a vágólap API hívásnak szinkron módon kell kezdődnie
+                    // a kattintás eseményen belül. Ezért a Promise-t adjuk át a ClipboardItem-nek.
+                    const blobPromise = new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            try {
+                                const canvas = createInfographicCanvas();
+                                if(!canvas) throw new Error("Canvas készítése sikertelen.");
+                                canvas.toBlob((blob) => {
+                                    if (blob) resolve(blob);
+                                    else reject(new Error("Hiba a blob generálásakor."));
+                                }, 'image/png');
+                            } catch(e) {
+                                reject(e);
+                            }
+                        }, 50);
+                    });
+
+                    const item = new ClipboardItem({ 'image/png': blobPromise });
+                    await navigator.clipboard.write([item]);
+                    
+                } else if (currentExportFormat === 'gif' && preRenderedExportFile) {
+                    const item = new ClipboardItem({ [preRenderedExportFile.type]: preRenderedExportFile });
+                    await navigator.clipboard.write([item]);
                 } else {
                     throw new Error("Hiányzó export fájl.");
                 }
 
-                if (navigator.clipboard && navigator.clipboard.write) {
-                    const item = new ClipboardItem({ [copyFile.type]: copyFile });
-                    await navigator.clipboard.write([item]);
-                    
-                    // Siker visszajelzés
-                    copyBtn.innerHTML = '✔ Másolva';
-                    copyBtn.style.backgroundColor = '#2e7d32'; // Zöld
-                    copyBtn.style.color = 'white';
-                    copyBtn.style.borderColor = '#2e7d32';
-                    await sleep(2000);
-                } else {
-                    alert('A böngésződ nem támogatja a közvetlen vágólapra másolást. Próbáld meg a letöltést!');
-                }
+                // Siker visszajelzés
+                copyBtn.innerHTML = '✔ Másolva';
+                copyBtn.style.backgroundColor = '#2e7d32'; // Zöld
+                copyBtn.style.color = 'white';
+                copyBtn.style.borderColor = '#2e7d32';
+                await sleep(2000);
+
             } catch (error) {
                 console.error('Másolás Hiba:', error);
-                alert('A vágólapra másolás sikertelen (lehet, hogy a böngésződ blokkolja ezt a funkciót, vagy nem támogatja a GIF formátumot). Használd a letöltést!');
+                alert('A vágólapra másolás sikertelen (lehet, hogy a böngésződ blokkolja ezt a funkciót, vagy nem támogatja a formátumot). Használd a letöltést!');
             } finally {
                 copyBtn.innerHTML = originalContent;
                 copyBtn.style.backgroundColor = '';
