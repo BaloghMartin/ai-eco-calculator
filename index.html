@@ -1395,7 +1395,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                             <div class="metric-title-row">
                                 <h4 class="type-text" data-text="Vízforralás"></h4>
                                 <span class="info-badge" tabindex="0"
-                                    data-tooltip="A fizika törvényei alapján – a víz fajhőjét (4,18 J/g°C) és a háztartási vízforralók hőveszteségét is belekalkulálva – egyetlen csésze (~250 ml) szobahőmérsékletű víz 100°C-ra hevítése pontosan 25 Wh energiát igényel.">i</span>
+                                    data-tooltip="A fizika törvényei alapján – a víz fajhőjét (4,18 J/g°C) és a háztartási vízforralók hőveszteségét is belekalkulálva – egyetlen bögre (~250 ml) szobahőmérsékletű víz 100°C-ra hevítése pontosan 25 Wh energiát igényel.">i</span>
                             </div>
                             <p><span id="metricTea" class="type-dynamic"></span><span class="type-text"
                                     data-text=" bögre"></span></p>
@@ -2204,14 +2204,37 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             const words = text.split(/\s+/);
             const lines = [];
             if (words.length === 0) return lines;
-            let currentLine = words[0];
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = ctx.measureText(currentLine + " " + word).width;
-                if (width < maxWidth) { currentLine += " " + word; }
-                else { lines.push(currentLine); currentLine = word; }
+            let currentLine = "";
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i];
+                while (word.length > 0 && ctx.measureText(word).width > maxWidth) {
+                    let c = 1;
+                    while (c < word.length && ctx.measureText(word.substring(0, c + 1)).width <= maxWidth) {
+                        c++;
+                    }
+                    if (currentLine !== "") {
+                        lines.push(currentLine);
+                        currentLine = "";
+                    }
+                    lines.push(word.substring(0, c));
+                    word = word.substring(c);
+                }
+                if (word === "") continue;
+                if (currentLine === "") {
+                    currentLine = word;
+                } else {
+                    const width = ctx.measureText(currentLine + " " + word).width;
+                    if (width <= maxWidth) {
+                        currentLine += " " + word;
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    }
+                }
             }
-            lines.push(currentLine);
+            if (currentLine !== "") {
+                lines.push(currentLine);
+            }
             return lines;
         }
 
