@@ -561,6 +561,11 @@
     /* A megosztás gomb legyen picit szebb feketén */
     [data-theme="dark"] .share-btn { background-color: var(--brand-orange); color: white; border-color: var(--brand-orange); }
     [data-theme="dark"] .share-btn:hover { background-color: var(--brand-orange-hover); }
+    
+    /* Export gombok egymás alá kerülnek kis képernyőn */
+    @media (max-width: 600px) {
+        .export-actions { grid-template-columns: 1fr; gap: 0.5rem; }
+    }
 </style>
 </head>
 <body>
