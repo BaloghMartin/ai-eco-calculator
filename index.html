@@ -83,7 +83,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         --brand-orange-hover: #D13E0E;   /* Interakció (hover/active) állapot a fő színhez */
         --brand-black: #1E1E1E;          /* Fejléc, kapszulák és terminál háttere */
         --brand-dark-gray: #333333;      /* Erős kontrasztú, sötétszürke szövegek */
-        --bg-color: #ffffff;             /* Magának a widget kártyának a háttere */
+        --bg-color: #ffffff;             /* Magának a WIDGET kártyának a háttere */
         --card-bg: #ffffff;              /* Belső, kisebb kártyák háttere */
         --text-main: #1A1A1A;            /* Elsődleges olvasószöveg színe */
         --text-muted: #555555;           /* Másodlagos (halványabb) leírások, metaadatok */
@@ -886,6 +886,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     let lastCalculatedState = null;
     let preRenderedExportFile = null; // A háttérben előre legenerált GIF tárolója
     let isGeneratingGif = false;      // Megakadályozza a párhuzamos generálást
+    let hasCalculated = false;        // Jelzi, ha történt már számítás (Fókusz törlés védelem)
 
     function resetExportState() {
         preRenderedExportFile = null;
@@ -932,12 +933,28 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         'podcast': 2.0,   // ~1 percnyi Nvidia H100 GPU-n futtatott Text-to-Speech (TTS)
         'video': 25.0     // ~5 mp Sora / Runway Gen-3 generálás (Óriási VRAM igény)
     };
+    
+    /**
+     * DETERMINISTIC VARIANCE (FNV-1a Hash Algorithm)
+     * Kriptográfiailag független eloszlást biztosít, hogy pontosan ugyanolyan promptokra
+     * mindig fix, de egymástól jelentősen eltérő (pszeudo-organikus) token szórás jöjjön ki.
+     */
+    function getDeterministicVariance(promptText, selectedModel, contextSize) {
+        const inputString = `${promptText}|${selectedModel}|${contextSize}`;
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < inputString.length; i++) {
+            hash ^= inputString.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+            hash = hash >>> 0; // Force 32-bit unsigned integer to prevent JS precision sign issues
+        }
+        return (hash % 51) - 25;
+    }
 
     /**
      * TOKENSZÁMÍTÁS (Bemenet és várható kimenet becslése)
      * API hívás helyett nyelvészeti és matematikai szabályokkal szimulálja az LLM működését.
      */
-    function calculateTokens(text, contextType) {
+    function calculateTokens(text, contextType, selectedModel) {
         let charCount = text.length;
         let wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
         
@@ -949,9 +966,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         else if (contextType === 'pdf_large') { charCount += 300000; wordCount += 50000; }
         else if (contextType === 'book') { charCount += 1500000; wordCount += 250000; }
         
-        // 1.2 BPE (Byte Pair Encoding) Token szimuláció (A szigorúbbat vesszük)
-        // Átlagosan 1 token = 4 karakter VAGY 0.75 szó angolul. Magyarban ez torzulhat.
-        const inputTokens = Math.max(Math.ceil(charCount / 4.0), Math.ceil(wordCount * 1.33));
+        // 1.2 BPE (Byte Pair Encoding) Token szimuláció a magyar Llama-3/GPT-4o morfológiájához
+        const inputTokens = Math.max(Math.ceil(charCount / 2.2), Math.ceil(wordCount * 2.7));
         
         // 1.3 Kimeneti Token Predikció (Igetövek és kulcsszavak alapján)
         // Megpróbáljuk kitalálni a prompt szövegéből, hogy a modell röviden vagy hosszan fog válaszolni.
@@ -971,11 +987,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         }
 
         // 1.4 Determinisztikus Variancia ("Organikus" hatás)
-        // Létrehozunk egy stabil pszeudó-random számot a beírt karakterek ASCII kódjának 
-        // összegéből. Így ugyanarra a promptra mindig UGYANAZ jön ki, de más promptra eltér.
-        let charCodeSum = 0;
-        for (let i = 0; i < charCount; i++) { charCodeSum += text.charCodeAt(i) || 0; }
-        const variance = (charCodeSum % 50) - 25; 
+        const variance = getDeterministicVariance(text, selectedModel, charCount);
         let estimatedOutputTokens = Math.round(baseOutputTokens + variance);
         
         return { inputTokens, estimatedOutputTokens: Math.max(10, estimatedOutputTokens) };
@@ -984,34 +996,41 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     /**
      * ENERGIA ÉS VÍZ SZÁMÍTÁS (Watt-óra és Milliliter kiszámítása)
      */
-    function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType) {
-        // Alapértelmezett (Közepes / GPT-4o szint) energia szorzók (Wh / 1000 token)
-        let inEnergyRate = 0.30; let outEnergyRate = 1.00; 
-        let finalOutputTokens = outputTokens;
+    function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType, rawPromptText) {
+        // Disaggregated Prefill vs. Decode Routing alapok (ML.ENERGY EcoLogits H100/B200 benchmarkok alapján)
+        let inRate = 0.05; let outRate = 0.16; 
 
         if (modelTier === 'light') {
-            // Llama-3 8B vagy Claude Haiku szint - olcsóbb és gyorsabb
-            inEnergyRate = 0.05; outEnergyRate = 0.60;
+            inRate = 0.01; outRate = 0.04;
+        } else if (modelTier === 'medium') {
+            inRate = 0.05; outRate = 0.16;
         } else if (modelTier === 'thinking') {
-            // Gondolkodó modellek (pl. OpenAI o1) sokkal drágábbak, mert
-            // a rejtett "Chain of Thought" miatt többször átgondolják a választ.
-            inEnergyRate = 0.80; outEnergyRate = 4.00; 
-            finalOutputTokens *= 5; // A belső rejtett tokeneket szimuláljuk az 5x szorzóval
+            inRate = 0.08; outRate = 0.25; 
         }
 
-        const inputEnergy = (inputTokens / 1000) * inEnergyRate;
-        const outputEnergy = (finalOutputTokens / 1000) * outEnergyRate;
+        // Dynamic Task-Complexity Heuristic (A belső "gondolkodási" ciklusok szimulálása)
+        const isComplexReasoning = /számold|bizonyítsd|program|kódol|logika|matek|elemezd|egyenlet|oldd meg/i.test(rawPromptText);
+        let T_thinking = 0;
         
+        if (modelTier === 'thinking') {
+            if (isComplexReasoning) {
+                T_thinking = 6000 + (inputTokens * 2);
+            } else {
+                T_thinking = 150;
+            }
+        }
+
+        const finalOutputTokens = outputTokens + T_thinking;
+
+        const inputEnergy = (inputTokens / 1000) * inRate;
+        const outputEnergy = (finalOutputTokens / 1000) * outRate;
         const mediaEnergy = MEDIA_ENERGY_TAX_WH[mediaType] || 0.0;
         
-        // PUE (Power Usage Effectiveness) - Infrastruktúra adó (Hűtés, hálózat, világítás)
-        // A szerverközpont maga is fogyaszt áramot a gépeken túl. 1.2 egy szolid átlagérték.
-        const AI_HYPERSCALER_AVERAGE_PUE = 1.2;
-        const totalEnergyWh = (inputEnergy + outputEnergy + mediaEnergy) * AI_HYPERSCALER_AVERAGE_PUE;
+        // PUE integrálva a referenciarátákba, így csak közvetlen aggregációt hajtunk végre.
+        const totalEnergyWh = inputEnergy + outputEnergy + mediaEnergy;
         
-        // WUE (Water Usage Effectiveness) - 0.5 ml/Wh hűtővíz párolgás
-        // Nagyjából fél milliliter édesvíz párolog el egy Watt-óra energia hűtésekor.
-        const datacenterWaterML = totalEnergyWh * 0.5;
+        // WUE (Water Usage Effectiveness) - Scope 2 off-site és adatközpont integrált hűtésvíz terhelés
+        const datacenterWaterML = totalEnergyWh * 3.1;
 
         return { totalEnergyWh, datacenterWaterML, finalOutputTokens };
     }
@@ -1024,7 +1043,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         return {
             phoneChargePct: (energyWh / 22.5) * 100, // 22.5 Wh tényleges hálózati konnektor töltési igény
             ledMinutes: (energyWh / 10) * 60, // 10W LED izzó = 10 Wh energia elhasználása 1 óra alatt
-            waterLiters: energyWh / 0.4, // Vízművek szivattyú energiája: kb 0.4 Wh/Liter tisztítás
+            waterLiters: energyWh / 1.0, // Vízművek szivattyú energiája a modern európai sztenderd alapján
             streamMinutes: energyWh / 1.25, // HD Stream Netflix szerverköltség: 75W (1.25 Wh/Perc)
             teaCups: energyWh / 25 // 1 bögre (250ml) 20 fokos víz 100 fokra (25 Wh hőkapacitás)
         };
@@ -1119,7 +1138,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // Ha a véletlenszerű betöltött példa van még a mezőben, az első kattintásra kiürítjük,
     // mintha egy friss, új kérdést szeretne feltenni a látogató.
     aiPrompt.addEventListener('focus', () => {
-        if (aiPrompt.value === defaultPrompt) {
+        if (aiPrompt.value === defaultPrompt && !hasCalculated) {
             aiPrompt.value = ''; 
             charCountDisplay.textContent = '0';
             
@@ -1138,6 +1157,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
     // ================= VÉLETLENSZERŰ SZCENÁRIÓ BETÖLTÉSE (DOBÓKOCKA) =================
     // Lekéri az egyik előre megírt komplex promptot, és szimulálja a rádiógombok megnyomását is.
     function initRandomScenario() {
+        hasCalculated = false; // Új példa betöltésekor újra engedélyezzük a fókusz-törlést
         const scenario = PRESET_SCENARIOS[Math.floor(Math.random() * PRESET_SCENARIOS.length)];
         
         aiPrompt.value = scenario.prompt;
@@ -1199,6 +1219,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const text = aiPrompt.value;
         if (text.length === 0) return; 
 
+        hasCalculated = true; // Számítás megtörtént, zároljuk az input fókusz-törlést
+
         exportSection.style.display = 'none'; 
         
         // Visszaállítjuk alapra az export szekciót (PNG formátumra, cache törlése)
@@ -1212,8 +1234,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         const selectedContext = document.querySelector('input[name="contextType"]:checked').value;
         
         // Heurisztikai számítások futtatása
-        const tokens = calculateTokens(text, selectedContext);
-        const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia);
+        const tokens = calculateTokens(text, selectedContext, selectedModel);
+        const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia, text);
         const equivalents = getPhysicalEquivalents(impact.totalEnergyWh);
 
         // UI elemek lezárása az animáció idejére (ne tudjon belekattintani közben)
@@ -1652,7 +1674,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 // pörgetés animáció: progress (0-tól 1-ig) szorozva a nyers értékkel, finomítva a Cubic fügvénnyel
                 let progress = Math.max(0, (t - 1900) / 1200);
                 let currentVal = totEnergyRaw * easeOutCubic(progress);
-                displayEnergy = currentVal.toFixed(2).replace('.', ',') + " " + totEnergyUnit;
+                displayEnergy = formatHu(currentVal) + " " + totEnergyUnit;
             }
 
             ctx.fillStyle = '#EA4C15'; 
@@ -1717,12 +1739,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 let displayVal = m.val; 
                 if (t <= endTime) {
                     let currentVal = m.rawVal * easeOutCubic(progress);
-                    if(m.unit === '%') {
-                        displayVal = Math.floor(currentVal) + "%"; // Százalék esetén egész szám (tizedes nélkül)
-                    } else {
-                        // Közbülső tizedesjegyek fixálása 2 tizedesre, hogy ne ugráljon vadul a pixelszélesség pörgés közben
-                        displayVal = currentVal.toFixed(2).replace('.', ',') + " " + m.unit;
-                    }
+                    displayVal = formatHu(currentVal) + (m.unit === '%' ? '%' : ' ' + m.unit);
                 }
 
                 ctx.fillStyle = '#1A1A1A';
@@ -1903,7 +1920,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 }
             } 
             else if (currentExportFormat === 'gif' && preRenderedExportFile) {
-                // A GIF már le van generálva a háttérben, azonnali letöltés!
+                // A GIF már le van legenerálva a háttérben, azonnali letöltés!
                 triggerDownload(URL.createObjectURL(preRenderedExportFile), preRenderedExportFile.name);
             }
         } catch (error) {
