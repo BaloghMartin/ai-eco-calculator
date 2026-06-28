@@ -1,75 +1,10 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-<!-- 
-================================================================================
-AI ENVIRONMENTAL IMPACT CALCULATOR - DETAILED PROJECT OVERVIEW
-================================================================================
-
-PROJECT PHILOSOPHY:
-This is an interactive data journalism widget designed to make the abstract 
-and often opaque environmental costs of Large Language Models (LLMs) tangible 
-for the general public. It runs entirely client-side, meaning no server backend 
-is required, ensuring 100% user privacy and zero actual API energy consumption 
-during estimation.
-
-THE DETERMINISTIC HEURISTIC ENGINE (MULTIMODAL & RAG EXTENSION):
-Instead of using random numbers (which ruins credibility) or expensive API 
-calls, this widget uses a "Deterministic Heuristic Engine." If a user types 
-the exact same prompt, they will get the exact same result every time. 
-However, the engine is sensitive enough to scale mathematically based on 
-linguistic cues (verbs, syntax, and length), selected media taxes, and RAG sizes.
-
-SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
-
-1. Token Estimation (BPE Approximation)
-   - Real LLMs use Byte Pair Encoding (BPE). As a rule of thumb, 1 token is 
-     roughly 4 characters or 0.75 words. 
-   - We calculate both and take the maximum to prevent double-counting dense 
-     languages while accurately capturing high-fertility English words.
-   - Long Context Adds (Prefill phase simulation): 
-     - Article (~5k chars)
-     - Small PDF (~30k chars / 10 pages)
-     - Large PDF (~300k chars / 100 pages)
-     - Book/Codebase (~1.5M chars / 500 pages)
-   
-2. Energy Footprint (Watt-hours per 1,000 tokens)
-   - Input processing is parallelized and significantly cheaper.
-   - Output generation is autoregressive (one token at a time) and expensive.
-   - Light (e.g., Llama 3 8B): Input = 0.05 Wh | Output = 0.60 Wh
-   - Medium (e.g., GPT-4o): Input = 0.30 Wh | Output = 1.00 Wh
-   - Thinking (e.g., o1): Input = 0.80 Wh | Output = 4.00 Wh
-   * Note: Thinking models evaluate a hidden "Chain-of-Thought" before 
-     answering. We multiply expected output by 5x to simulate this compute tax.
-
-3. Multimodal Tax (Media Generation Overhead)
-   - Image (+2.9 Wh) - based on Luccioni et al. (2023) for diffusion models.
-   - Podcast (+2.0 Wh) - ~1 minute of TTS inference.
-   - Video (+25.0 Wh) - ~5 seconds of video diffusion generation (e.g., Sora).
-
-4. Datacenter Overhead (PUE & WUE)
-   - We apply a Power Usage Effectiveness (PUE) multiplier of 1.2x. This 
-     accounts for the non-compute energy used by the AI Hyperscaler facility 
-     (mostly industrial HVAC cooling, networking hardware, and lighting).
-   - Server Cooling (WUE): Datacenters evaporate roughly 0.5 mL of fresh 
-     water per Watt-hour consumed to cool the GPUs.
-
-5. Real-World Physical Equivalents
-   - Smartphone: A modern 17.5Wh battery requires ~22.5Wh from the wall due 
-     to AC-to-DC charging efficiency and heat loss.
-   - Tap Water: Municipal water treatment averages ~1.5 kWh per 1000 gallons, 
-     which converts to 0.4 Wh per liter of clean drinking water.
-================================================================================
--->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MI KHK - MI Környezeti Hatás Kalkulátor</title>
 
-<!-- ==========================================================================
-     KÜLSŐ FÜGGŐSÉGEK (CDN)
-     GIF.js: A HTML5 Canvas tartalmának kliens-oldali (böngészőben történő) 
-             GIF fájllá kódolásához szükséges könyvtár.
-     ========================================================================== -->
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 
 <style>
@@ -558,7 +493,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 <body>
 
 <div class="env-calculator" id="calculatorApp">
-    <!-- WIDGET FEJLÉC (Brand Section) -->
     <div class="brand-header">
         <div class="brand-logo">MI KHK</div>
         <div class="brand-section">Tudomány</div>
@@ -570,16 +504,11 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             Kíváncsi vagy, mennyi energiát és vizet emészt fel egyetlen lekérdezés? Gépeld be a kérdésed, válassz a modellek közül, és tudd meg, mekkora a valós fizikai lábnyoma a digitális asszisztenseknek!
         </p>
 
-        <!-- ================= 1. BEMENET SZEKCIÓ (UI BLOKK) ================= -->
         <div class="section-label">1. Bemenet (Prompt és Csatolmányok)</div>
         
         <div class="chat-input-wrapper">
-            <!-- A felhasználó ide írja a kérdését -->
             <textarea id="aiPrompt" placeholder="Írd ide a promptot..."></textarea>
             
-            <!-- RAG (Retrieval-Augmented Generation) Szimulátor -> PDF/Könyv csatolása -->
-            <!-- Ez szimulálja a modern kontextus-ablakokat, ahol a dokumentum feltöltése 
-                 drasztikusan megnöveli a prefill-fázis (olvasás) szerverköltségét. -->
             <details class="media-details context-in-input" id="contextSelectorContainer">
                 <summary class="media-summary">
                     <span style="display: flex; align-items: center; gap: 8px;">
@@ -640,9 +569,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             <div class="input-bottom-row">
                 <div class="char-count"><span id="charCount">0</span> karakter</div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <!-- Véletlenszerű Prompt Generáló Gomb (Dobókocka) -->
                     <button id="randomBtn" class="random-btn" title="Véletlenszerű példa betöltése">🎲</button>
-                    <!-- Fő Számítás Gomb -->
                     <button id="calcBtn" class="send-btn" title="Hatás Kiszámítása">
                         Számítás
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -654,12 +581,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </div>
 
-        <!-- ================= 2. KIMENET SZEKCIÓ (UI BLOKK) ================= -->
         <div class="section-label" style="margin-top: 2rem;">2. Kimenet (Formátum és Modell)</div>
 
-        <!-- Multimodális Kimenet Kiterjesztés (Kép, Audió, Videó generálás) -->
-        <!-- Ezek adják a plusz fix "Média Adót" a számítási modellhez, mivel pl. 
-             a videógenerálás diffúziós modellje sokkal nagyobb energiaigényű. -->
         <details class="media-details" id="mediaSelectorContainer">
             <summary class="media-summary">
                 <span style="display: flex; align-items: center; gap: 8px;">
@@ -709,8 +632,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </div>
         </details>
 
-        <!-- Modellméret választó (Paraméterszám és Architektúra szimulálása) -->
-        <!-- Light (8B), Medium (GPT-4), Thinking (o1, kiterjesztett CoT szorzóval) -->
         <div class="model-selector">
             <label class="radio-label">
                 <input type="radio" name="aiModel" value="light">
@@ -726,31 +647,24 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             </label>
         </div>
 
-        <!-- ================= EREDMÉNYEK SZEKCIÓ ================= -->
-        <!-- Ez a rész alapértelmezetten rejtve van, a JS gépelés animáció teszi láthatóvá 
-             a Számítás gomb megnyomása után. Minden kiírt adatot JS fog feltölteni a 'data-text' ből. -->
         <div class="results-section" id="results">
             
-            <!-- Rendszernapló (Terminál nézet) komplex folyamatokhoz -->
             <div id="thinkingState" class="thinking-state" style="display: none;">
                 <div class="think-header">Rendszernapló</div>
                 <div class="think-content" id="thinkContent"></div>
             </div>
 
-            <!-- 1. Várható kimeneti tokenszám megjelenítése -->
             <div class="energy-header">
                 <span class="type-text" data-text="Becsült MI Kimenet: "></span>
                 <span id="outTokens" class="type-dynamic" style="font-weight: 800;"></span>
                 <span class="type-text" data-text=" token"></span>
             </div>
 
-            <!-- 2. Fő energiafogyasztás (Wh) gigantikus számmal -->
             <div class="output-focus">
                 <span class="focus-label type-text" data-text="Teljes Energia Lábnyom"></span>
                 <span id="totEnergy" class="type-dynamic"></span>
             </div>
 
-            <!-- 3. Fizikai egyenértékes metrikák (Rács) -->
             <div class="metrics-grid">
                 
                 <div class="metric-card cooling-card">
@@ -758,8 +672,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     <div class="metric-info">
                         <div class="metric-title-row">
                             <h4 class="type-text" data-text="Szerver Hűtés"></h4>
-                            <!-- Az (i) ikon data-tooltip attribútuma tartalmazza a lebegő magyarázatot -->
-                            <span class="info-badge" tabindex="0" data-tooltip="A felhőben dolgozó szervereket hatalmas hűtőtornyok temperálják. A legfrissebb iparági kutatások (WUE átlagok) alapján 1 Wh energia elhasználása során nagyjából 0,5–1 milliliter édesvíz párolog el végleg a légkörbe.">i</span>
+                            <span class="info-badge" tabindex="0" data-tooltip="A felhőben dolgozó szervereket hatalmas hűtőtornyok temperálják. A legfrissebb empirikus kutatások alapján a közvetlen adatközponti párologtatást  és az áramellátást biztosító erőművek vízveszteségét aggregálva 1 Wh villamos energia elhasználása során átlagosan 3,1 milliliter édesvíz párolog el végleg a légkörbe.">i</span>
                         </div>
                         <p><span id="metricCoolingWater" class="type-dynamic"></span><span class="type-text" data-text=" ml"></span></p>
                     </div>
@@ -792,7 +705,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                     <div class="metric-info">
                         <div class="metric-title-row">
                             <h4 class="type-text" data-text="Víztisztítás"></h4>
-                            <span class="info-badge" tabindex="0" data-tooltip="A települési vízművek komplex tisztító és szivattyúzó hálózata fajlagosan nagyjából 0,4 Wh villamos energiát használ fel 1 liter tiszta, iható vezetékes ivóvíz elosztásához.">i</span>
+                            <span class="info-badge" tabindex="0" data-tooltip="A települési vízművek komplex tisztító és szivattyúzó hálózata a korszerű európai sztenderdek alapján átlagosan 1,0 Wh villamos energiát használ fel 1 liter tiszta, vezetékes ivóvíz elosztásához.">i</span>
                         </div>
                         <p><span id="metricWater" class="type-dynamic"></span><span class="type-text" data-text=" liter"></span></p>
                     </div>
@@ -822,10 +735,8 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                 
             </div>
 
-            <!-- ================= EXPORT SZEKCIÓ (3-osztatú rács formátumváltóval) ================= -->
             <div class="export-section" id="exportSection">
                 <div class="export-actions">
-                    <!-- 1. Formátum Választó Toggle (Kép / GIF kapcsoló) -->
                     <div class="format-toggle-wrapper">
                         <div class="format-toggle">
                             <button id="formatPng" class="toggle-btn active" data-format="png">Kép</button>
@@ -833,7 +744,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                         </div>
                     </div>
                     
-                    <!-- 2. Egységes Mentés Gomb (A JS dönti el, mit tölt le a Toggle alapján) -->
                     <button id="downloadBtn" class="export-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -843,7 +753,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                         Mentés
                     </button>
                     
-                    <!-- 3. Dinamikus Megosztás Gomb (Natív Web Share API, Fallback-kel) -->
                     <button id="shareBtn" class="export-btn share-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="18" cy="5" r="3"></circle>
@@ -855,7 +764,6 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
                         Megosztás
                     </button>
                     
-                    <!-- GIF Figyelmeztetés (Dinamikusan jelenik meg, ha a GIF formátumot választják) -->
                     <div id="gifWarning" style="display: none; grid-column: 1 / -1; text-align: center; font-size: 0.8rem; color: var(--brand-orange); font-weight: bold; margin-top: 0.25rem;">
                         ⏳ A GIF renderelése (főleg megosztáshoz) néhány másodpercet is igénybe vehet. Kérjük, légy türelemmel!
                     </div>
@@ -864,7 +772,7 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         </div>
         
         <div class="disclaimer-text">
-            <strong>Kalkulátor Infó:</strong> Ez a program edukációs célokat szolgál, az eredményeket determinisztikus iparági heurisztikák alapján becsüli (nem hív be valódi API-t). Különös tekintettel a hosszú kontextusokra (RAG/PDF elemzés): A kutatások alapján a masszív bemenetek feldolgozása egyre jelentősebb és rejtettebb szerepet játszik az MI ökológiai lábnyomában.
+            <strong>Kalkulátor Infó:</strong> Ez a program edukációs célokat szolgál, az eredményeket determinisztikus iparági heurisztikák alapján becsüli (nem hív be valódi API-t). A modern FlashAttention keretrendszerek révén a csatolt dokumentumok beolvasása (Prefill) energiahatékonyan fut; a digitális asszisztensek valós ökológiai terhét a kimenetgenerálás (Decode) memória-sávszélesség korlátos pörgetése és a rejtett gondolkodási láncok (Chain-of-Thought) tesztidő-számítása jelenti.
         </div>
     </div>
 </div>
@@ -955,19 +863,25 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
      * API hívás helyett nyelvészeti és matematikai szabályokkal szimulálja az LLM működését.
      */
     function calculateTokens(text, contextType, selectedModel) {
-        let charCount = text.length;
-        let wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        const rawCharCount = text.length;
+        const rawWordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        
+        // Kizárólag a begépelt nyers prompt tokenjei a Decode hosszirányú becsléséhez
+        const promptOnlyTokens = Math.max(Math.ceil(rawCharCount / 2.2), Math.ceil(rawWordCount * 2.7));
+
+        let totalCharCount = rawCharCount;
+        let totalWordCount = rawWordCount;
         
         // 1.1 Hosszú kontextus matek (Prefill Phase RAG szimuláció)
         // A modern LLM-eknek egy csatolt PDF-et is végig kell olvasniuk a válaszadás előtt.
         // Ez a 'Prefill' fázis rendkívül gyorsan fut, de energiaigényes.
-        if (contextType === 'article') { charCount += 5000; wordCount += 850; }
-        else if (contextType === 'pdf_small') { charCount += 30000; wordCount += 5000; }
-        else if (contextType === 'pdf_large') { charCount += 300000; wordCount += 50000; }
-        else if (contextType === 'book') { charCount += 1500000; wordCount += 250000; }
+        if (contextType === 'article') { totalCharCount += 5000; totalWordCount += 850; }
+        else if (contextType === 'pdf_small') { totalCharCount += 30000; totalWordCount += 5000; }
+        else if (contextType === 'pdf_large') { totalCharCount += 300000; totalWordCount += 50000; }
+        else if (contextType === 'book') { totalCharCount += 1500000; totalWordCount += 250000; }
         
         // 1.2 BPE (Byte Pair Encoding) Token szimuláció a magyar Llama-3/GPT-4o morfológiájához
-        const inputTokens = Math.max(Math.ceil(charCount / 2.2), Math.ceil(wordCount * 2.7));
+        const inputTokens = Math.max(Math.ceil(totalCharCount / 2.2), Math.ceil(totalWordCount * 2.7));
         
         // 1.3 Kimeneti Token Predikció (Igetövek és kulcsszavak alapján)
         // Megpróbáljuk kitalálni a prompt szövegéből, hogy a modell röviden vagy hosszan fog válaszolni.
@@ -975,19 +889,19 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
         let baseOutputTokens = 0;
         
         if (/\b(write|essay|story|írj|esszé|történet)\b/.test(lowerText)) { 
-            baseOutputTokens = 400 + (inputTokens * 2.0); // Bőbeszédű kimenet generálása
+            baseOutputTokens = 400 + (promptOnlyTokens * 2.0); // Bőbeszédű kimenet generálása
         } else if (/\b(code|script|kód|szkript)\b/.test(lowerText)) { 
-            baseOutputTokens = 300 + (inputTokens * 1.5); 
+            baseOutputTokens = 300 + (promptOnlyTokens * 1.5); 
         } else if (/\b(summarize|tldr|összefoglal|röviden)\b/.test(lowerText)) { 
-            baseOutputTokens = Math.max(50, inputTokens * 0.3); // Rövidített kivonat
+            baseOutputTokens = Math.max(50, promptOnlyTokens * 0.3); // Rövidített kivonat
         } else if (/\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/.test(lowerText) || lowerText.includes('?')) { 
-            baseOutputTokens = 150 + (inputTokens * 1.0); // Tipikus kérdés-felelet arány
+            baseOutputTokens = 150 + (promptOnlyTokens * 1.0); // Tipikus kérdés-felelet arány
         } else { 
-            baseOutputTokens = 25 + (inputTokens * 0.2); // Általános, rövid csevegés
+            baseOutputTokens = 25 + (promptOnlyTokens * 0.2); // Általános, rövid csevegés
         }
 
         // 1.4 Determinisztikus Variancia ("Organikus" hatás)
-        const variance = getDeterministicVariance(text, selectedModel, charCount);
+        const variance = getDeterministicVariance(text, selectedModel, totalCharCount);
         let estimatedOutputTokens = Math.round(baseOutputTokens + variance);
         
         return { inputTokens, estimatedOutputTokens: Math.max(10, estimatedOutputTokens) };
@@ -1008,13 +922,16 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
             inRate = 0.08; outRate = 0.25; 
         }
 
-        // Dynamic Task-Complexity Heuristic (A belső "gondolkodási" ciklusok szimulálása)
-        const isComplexReasoning = /számold|bizonyítsd|program|kódol|logika|matek|elemezd|egyenlet|oldd meg/i.test(rawPromptText);
+        // Dynamic Task-Complexity Heuristic (3-szintű gondolkodási fázis szimulálása)
         let T_thinking = 0;
-        
         if (modelTier === 'thinking') {
-            if (isComplexReasoning) {
-                T_thinking = 6000 + (inputTokens * 2);
+            const isHighReasoning = /számold|bizonyítsd|program|kódol|logika|matek|egyenlet|oldd meg/i.test(rawPromptText);
+            const isMediumReasoning = /elemezd|összefoglal|esszé|érvelj|hasonlítsd|tervezz|levezetés|magyarázd/i.test(rawPromptText);
+
+            if (isHighReasoning) {
+                T_thinking = 6000 + (inputTokens * 2.0);
+            } else if (isMediumReasoning) {
+                T_thinking = Math.round(2000 + (inputTokens * 1.5));
             } else {
                 T_thinking = 150;
             }
