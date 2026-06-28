@@ -56,6 +56,13 @@ SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
    - HD Stream: Streaming high-definition video consumes ~1.25 Wh per minute.
    - Tea: Boiling a cup of water (~250 ml) requires ~25 Wh.
 ================================================================================
+RECENT ARCHITECTURAL UPDATES (v2.0):
+- CDN Independence: The gif.js library and worker have been entirely inlined into this HTML file. The tool is now 100% offline-capable and immune to strict Content Security Policies (CSP) or CDN outages.
+- Enhanced Word-wrap: The canvas text rendering engine now natively respects manual line breaks (\n), ensuring perfectly formatted exports for poems, code snippets, or structured prompts.
+- Graceful Fallbacks: Enhanced error handling for the Async Clipboard API. Specifically prevents silent failures on Firefox when attempting to copy image/gif blobs to the clipboard, guiding users to alternative actions.
+- Dynamic Theme Engine: Added an active matchMedia listener to dynamically switch between dark and light modes in real-time when the OS theme changes, without requiring a page refresh.
+- Performance & UI: Removed redundant event listeners on tooltip badges to prevent flickering issues on mobile devices.
+================================================================================
 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
