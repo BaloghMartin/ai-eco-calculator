@@ -1470,6 +1470,32 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
     </div>
 
     <script>
+        'use strict';
+        /**
+         * GLOBÁLIS KONSTANSOK ÉS BEÁLLÍTÁSOK
+         * Központosítva tartalmazza a fizikai átváltószámokat, a szorzókat,
+         * és az előre lefordított (pre-compiled) Reguláris Kifejezéseket a jobb teljesítményért.
+         */
+        const ECO_CONSTANTS = {
+            // Fizikai / Energetikai szorzók
+            WATER_MULTIPLIER: 3.1,      // 1 Wh energia = 3.1 ml hűtővíz elpárolgása (Scope 2+3)
+            PHONE_CHARGE_WH: 22.5,      // Egy átlagos okostelefon teljes feltöltésének energiaigénye
+            LED_WATT_HOURS: 10,         // Egy 10W-os LED izzó 1 órányi fogyasztása
+            WATER_PUMP_RATE: 1.0,       // 1 Wh = 1 liter víz átszivattyúzása a vízműveknél
+            STREAM_WH_PER_MIN: 1.25,    // Netflix/YouTube HD streaming energiaigénye percenként
+            TEA_WH: 25,                 // 1 bögre (250ml) víz felforralásához szükséges energia
+            
+            MAX_PROMPT_LENGTH: 5000,    // Biztonsági (DoS) korlát a bemenetre
+
+            // Szöveg predikciós regexek előfordítva (A böngésző csak egyszer compile-olja őket, gyorsabb a futás)
+            REGEX_LONG_OUTPUT: /\b(write|essay|story|írj|esszé|történet)\b/i,
+            REGEX_CODE: /\b(code|script|kód|szkript)\b/i,
+            REGEX_SUMMARY: /\b(summarize|tldr|összefoglal|röviden)\b/i,
+            REGEX_QA: /\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/i,
+            REGEX_HIGH_REASONING: /számold|bizonyítsd|program|kódol|logika|matek|egyenlet|oldd meg/i,
+            REGEX_MED_REASONING: /elemezd|összefoglal|esszé|érvelj|hasonlítsd|tervezz|levezetés|magyarázd/i
+        };
+
         // ==========================================================================
         // 1. TUDOMÁNYOS HEURISZTIKAI MOTOR (SCIENTIFIC HEURISTIC ENGINE)
         // Ez a szekció felelős a számításokért, 100%-ban a kliens gépén (böngészőben).
@@ -1587,48 +1613,62 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * TOKENSZÁMÍTÁS (Bemenet és várható kimenet becslése)
          * API hívás helyett nyelvészeti és matematikai szabályokkal szimulálja az LLM működését.
          */
-        function calculateTokens(text, contextType, selectedModel) {
-            // Biztonsági védelem nagyon hosszú bedobott szövegek ellen (Regex fagyás elkerülése)
-            if (text.length > 5000) text = text.substring(0, 5000);
-
-            const rawCharCount = text.length;
-            const rawWordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
-
-            // Kizárólag a begépelt nyers prompt tokenjei a Decode hosszirányú becsléséhez
-            const promptOnlyTokens = Math.max(Math.ceil(rawCharCount / 2.2), Math.ceil(rawWordCount * 2.7));
-
-            let totalCharCount = rawCharCount;
-            let totalWordCount = rawWordCount;
-
-            // 1.1 Hosszú kontextus matek (Prefill Phase RAG szimuláció)
-            // A modern LLM-eknek egy csatolt PDF-et is végig kell olvasniuk a válaszadás előtt.
-            // Ez a 'Prefill' fázis rendkívül gyorsan fut, de energiaigényes.
+        /**
+         * KISZÁMOLJA A KONTEXTUS (RAG - Retrieval-Augmented Generation) TÖBBLETÉT
+         * A modern LLM-eknek egy csatolt PDF-et is végig kell olvasniuk a válaszadás előtt.
+         * Ez a 'Prefill' fázis rendkívül gyorsan fut (Parallel), de magas az induló energiaigénye.
+         * 
+         * @param {string} contextType - A kiválasztott csatolmány típusa (pl. 'pdf_large')
+         * @param {number} charCount - A begépelt prompt nyers karakterszáma
+         * @param {number} wordCount - A begépelt prompt nyers szószám
+         * @returns {Object} A megnövelt karakter és szószám értékek
+         */
+        function calculateContextOverhead(contextType, charCount, wordCount) {
+            let totalCharCount = charCount;
+            let totalWordCount = wordCount;
             if (contextType === 'article') { totalCharCount += 5000; totalWordCount += 850; }
             else if (contextType === 'pdf_small') { totalCharCount += 30000; totalWordCount += 5000; }
             else if (contextType === 'pdf_large') { totalCharCount += 300000; totalWordCount += 50000; }
             else if (contextType === 'book') { totalCharCount += 1500000; totalWordCount += 250000; }
+            return { totalCharCount, totalWordCount };
+        }
 
-            // 1.2 BPE (Byte Pair Encoding) Token szimuláció a magyar Llama-3/GPT-4o morfológiájához
+        /**
+         * KIMENETI TOKEN PREDIKCIÓ (Igetövek és kulcsszavak alapján)
+         * Megpróbálja kitalálni a prompt szövegéből, hogy a modell röviden vagy hosszan fog válaszolni.
+         * Az előre lefordított ECO_CONSTANTS regexeket használja a villámgyors szűréshez.
+         * 
+         * @param {string} text - A begépelt prompt szöveg
+         * @param {number} promptOnlyTokens - Csak a prompt becsült tokenszáma
+         * @returns {number} A becsült generált (Decode) tokenek száma
+         */
+        function estimateOutputLengthFromIntent(text, promptOnlyTokens) {
+            const lowerText = text.toLowerCase();
+            if (ECO_CONSTANTS.REGEX_LONG_OUTPUT.test(lowerText)) {
+                return 400 + (promptOnlyTokens * 2.0);
+            } else if (ECO_CONSTANTS.REGEX_CODE.test(lowerText)) {
+                return 300 + (promptOnlyTokens * 1.5);
+            } else if (ECO_CONSTANTS.REGEX_SUMMARY.test(lowerText)) {
+                return Math.max(50, promptOnlyTokens * 0.3);
+            } else if (ECO_CONSTANTS.REGEX_QA.test(lowerText) || lowerText.includes('?')) {
+                return 150 + (promptOnlyTokens * 1.0);
+            } else {
+                return 25 + (promptOnlyTokens * 0.2);
+            }
+        }
+
+        function calculateTokens(text, contextType, selectedModel) {
+            if (text.length > ECO_CONSTANTS.MAX_PROMPT_LENGTH) text = text.substring(0, ECO_CONSTANTS.MAX_PROMPT_LENGTH);
+
+            const rawCharCount = text.length;
+            const rawWordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+
+            const promptOnlyTokens = Math.max(Math.ceil(rawCharCount / 2.2), Math.ceil(rawWordCount * 2.7));
+            let { totalCharCount, totalWordCount } = calculateContextOverhead(contextType, rawCharCount, rawWordCount);
+
             const inputTokens = Math.max(Math.ceil(totalCharCount / 2.2), Math.ceil(totalWordCount * 2.7));
 
-            // 1.3 Kimeneti Token Predikció (Igetövek és kulcsszavak alapján)
-            // Megpróbáljuk kitalálni a prompt szövegéből, hogy a modell röviden vagy hosszan fog válaszolni.
-            const lowerText = text.toLowerCase();
-            let baseOutputTokens = 0;
-
-            if (/\b(write|essay|story|írj|esszé|történet)\b/.test(lowerText)) {
-                baseOutputTokens = 400 + (promptOnlyTokens * 2.0); // Bőbeszédű kimenet generálása
-            } else if (/\b(code|script|kód|szkript)\b/.test(lowerText)) {
-                baseOutputTokens = 300 + (promptOnlyTokens * 1.5);
-            } else if (/\b(summarize|tldr|összefoglal|röviden)\b/.test(lowerText)) {
-                baseOutputTokens = Math.max(50, promptOnlyTokens * 0.3); // Rövidített kivonat
-            } else if (/\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/.test(lowerText) || lowerText.includes('?')) {
-                baseOutputTokens = 150 + (promptOnlyTokens * 1.0); // Tipikus kérdés-felelet arány
-            } else {
-                baseOutputTokens = 25 + (promptOnlyTokens * 0.2); // Általános, rövid csevegés
-            }
-
-            // 1.4 Determinisztikus Variancia ("Organikus" hatás)
+            let baseOutputTokens = estimateOutputLengthFromIntent(text, promptOnlyTokens);
             const variance = getDeterministicVariance(text, selectedModel, totalCharCount);
             let estimatedOutputTokens = Math.round(baseOutputTokens + variance);
 
@@ -1664,12 +1704,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // Dynamic Task-Complexity Heuristic (3-szintű gondolkodási fázis szimulálása)
             let T_thinking = 0;
             if (modelTier === 'thinking') {
-                const isHighReasoning = /számold|bizonyítsd|program|kódol|logika|matek|egyenlet|oldd meg/i.test(rawPromptText);
-                const isMediumReasoning = /elemezd|összefoglal|esszé|érvelj|hasonlítsd|tervezz|levezetés|magyarázd/i.test(rawPromptText);
-
-                if (isHighReasoning) {
+                if (ECO_CONSTANTS.REGEX_HIGH_REASONING.test(rawPromptText)) {
                     T_thinking = 6000 + (inputTokens * 2.0);
-                } else if (isMediumReasoning) {
+                } else if (ECO_CONSTANTS.REGEX_MED_REASONING.test(rawPromptText)) {
                     T_thinking = Math.round(2000 + (inputTokens * 1.5));
                 } else {
                     T_thinking = 150;
@@ -1686,7 +1723,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const totalEnergyWh = inputEnergy + outputEnergy + mediaEnergy;
 
             // WUE (Water Usage Effectiveness) - Scope 2 off-site és adatközpont integrált hűtésvíz terhelés
-            const datacenterWaterML = totalEnergyWh * 3.1;
+            const datacenterWaterML = totalEnergyWh * ECO_CONSTANTS.WATER_MULTIPLIER;
 
             return { totalEnergyWh, datacenterWaterML, finalOutputTokens };
         }
@@ -1703,11 +1740,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          */
         function getPhysicalEquivalents(energyWh) {
             return {
-                phoneChargePct: (energyWh / 22.5) * 100, // 22.5 Wh tényleges hálózati konnektor töltési igény
-                ledMinutes: (energyWh / 10) * 60, // 10W LED izzó = 10 Wh energia elhasználása 1 óra alatt
-                waterLiters: energyWh / 1.0, // Vízművek szivattyú energiája a modern európai sztenderd alapján
-                streamMinutes: energyWh / 1.25, // HD Stream Netflix szerverköltség: 75W (1.25 Wh/Perc)
-                teaCups: energyWh / 25 // 1 bögre (250ml) 20 fokos víz 100 fokra (25 Wh hőkapacitás)
+                phoneChargePct: (energyWh / ECO_CONSTANTS.PHONE_CHARGE_WH) * 100, // 22.5 Wh tényleges hálózati konnektor töltési igény
+                ledMinutes: (energyWh / ECO_CONSTANTS.LED_WATT_HOURS) * 60, // 10W LED izzó = 10 Wh energia elhasználása 1 óra alatt
+                waterLiters: energyWh / ECO_CONSTANTS.WATER_PUMP_RATE, // Vízművek szivattyú energiája a modern európai sztenderd alapján
+                streamMinutes: energyWh / ECO_CONSTANTS.STREAM_WH_PER_MIN, // HD Stream Netflix szerverköltség: 75W (1.25 Wh/Perc)
+                teaCups: energyWh / ECO_CONSTANTS.TEA_WH // 1 bögre (250ml) 20 fokos víz 100 fokra (25 Wh hőkapacitás)
             };
         }
 
@@ -1914,6 +1951,21 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             if (!hasEditedPrompt) hasEditedPrompt = true;
         });
 
+        // BIZTONSÁGI (DoS) VÉDELEM: Túl hosszú beillesztés figyelmeztetése
+        // Bár a HTML textarea 'maxlength' attribútuma megakadályozza a hosszú begépelést,
+        // a felhasználó megpróbálhat egy óriási (pl. 100MB-os) szöveget is beilleszteni (Paste).
+        // Ez a kliens oldali regex elemzéseket és a Canvas tördelést is lefagyaszthatná.
+        // Itt detektáljuk, ha a limitet átlépi, és udvariasan szólunk a felhasználónak a csonkolásról.
+        aiPrompt.addEventListener('paste', (e) => {
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const currentLen = aiPrompt.value.length;
+            if (currentLen + pasteData.length > ECO_CONSTANTS.MAX_PROMPT_LENGTH) {
+                setTimeout(() => {
+                    alert('Figyelem: A beillesztett szöveg meghaladta az 5000 karakteres limitet, ezért csonkolva lett!');
+                }, 10);
+            }
+        });
+
         // Enter billentyű figyelése (kivéve Shift+Enter) a számítás gyors indításához
         aiPrompt.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); calcBtn.click(); }
@@ -1923,6 +1975,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // Ez a függvény gyűjti be az adatokat, futtatja le a kalkulációt,
         // majd egy látványos aszinkron (await) animációs sorozatban jeleníti meg azokat.
         calcBtn.addEventListener('click', async () => {
+            if (calcBtn.disabled || isGeneratingGif) return;
             const text = aiPrompt.value;
             if (text.length === 0) return;
 
@@ -2223,10 +2276,21 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 for (let i = 0; i < words.length; i++) {
                     let word = words[i];
                     if (word === "") continue;
+                    // JAVÍTÁS (Teljesítmény): Bináris keresés az O(N) lineáris léptetés helyett.
+                    // Extrém hosszú (szóköz nélküli) szavaknál a measureText karakterenkénti 
+                    // meghívása blokkolná a UI szálat (Layout Thrashing). 
+                    // A bináris keresés O(log N) lépésben (pl. 10 000 karakter esetén mindössze ~14 lépésből)
+                    // megtalálja az ideális sortörés (c) helyét a Canvas rajzoláshoz.
                     while (word.length > 0 && ctx.measureText(word).width > maxWidth) {
-                        let c = 1;
-                        while (c < word.length && ctx.measureText(word.substring(0, c + 1)).width <= maxWidth) {
-                            c++;
+                        let low = 1, high = word.length, c = 1;
+                        while (low <= high) {
+                            let mid = Math.floor((low + high) / 2);
+                            if (ctx.measureText(word.substring(0, mid)).width <= maxWidth) {
+                                c = mid;
+                                low = mid + 1;
+                            } else {
+                                high = mid - 1;
+                            }
                         }
                         if (currentLine !== "") {
                             lines.push(currentLine);
