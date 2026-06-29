@@ -1487,12 +1487,17 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         let preRenderedExportFile = null; // A háttérben előre legenerált GIF tárolója
         let isGeneratingGif = false;      // Megakadályozza a párhuzamos generálást
         let hasCalculated = false;        // Jelzi, ha történt már számítás (Fókusz törlés védelem)
+        let activeBlobUrls = new Set();   // Nyilvántartja az élő export Blob URL-eket a felszabadításhoz
 
         // Előre letárolt Base64 QR kód a megosztott képek jobb alsó sarkába
         const qrCodeImage = new Image();
         qrCodeImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABaElEQVRIib2WMa6DMBBEF7lw6SP4JuRiKBBxMbiJj7AlBWL/jAF9IqVccJP4UYy9Hs9a5MfozUyDSpYX/nC2uLNOpNGeky19lLMbWLZZg62yYE/K2U2MunFWkRuZpNGk/db1ZKxflwaxDQ641NSRVR90aSxLizO6eMORHaODbjL9srUbg9Jsdcz6rvL+LBSb0qh9wZ2BsrF+TzC6gbfV4obDC6Vu3plxwH1Wak37ul9vFljOEZmzNPrGd5v82aG8npnJ+nmz6g3oStyksTVT15sJA426nMB/0vqzLi+vmmuX+rkzQRCsac3SJh5XrLnmzKgbFFfHbEA147kWV4bDCZjGCbmGttk+xIQN2gZe2Q/3u/dpV7YHqO6foGs3sKMvDDkiDdjfJnFntb/J3nuoy2W4M/Zp9Dd6vGH9tptYzzdNY/CB/L9BnBn7NPJ54E26rMWN1fcf/IzwP37c2e4DOTMnx+kZ9mP8Ac9OkiYKKBY8AAAAAElFTkSuQmCC';
 
         function resetExportState() {
+            // MEMÓRIA TAKARÍTÁS: Az előző számítás során létrehozott Blob URL-ek felszabadítása
+            activeBlobUrls.forEach(url => URL.revokeObjectURL(url));
+            activeBlobUrls.clear();
+
             preRenderedExportFile = null;
             isGeneratingGif = false;
 
@@ -2600,10 +2605,14 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * 
          * @returns {HTMLCanvasElement|null} A kész, végleges grafikát tartalmazó Canvas HTML elem.
          */
+        let cachedWorkerUrl = null; // Singleton cache a GIF worker URL-nek (soha nem revoke-oljuk)
+
         async function getGifWorkerUrl() {
+            if (cachedWorkerUrl) return cachedWorkerUrl;
             const workerScript = document.getElementById('gif-worker').textContent;
             const blob = new Blob([workerScript], { type: 'application/javascript' });
-            return URL.createObjectURL(blob);
+            cachedWorkerUrl = URL.createObjectURL(blob);
+            return cachedWorkerUrl;
         }
 
         function createInfographicCanvas() {
@@ -2633,6 +2642,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
+
+            // Blob URL regisztrálása a felszabadítási listára (data: URI-knál nem szükséges)
+            if (url.startsWith('blob:')) {
+                activeBlobUrls.add(url);
+            }
         }
 
         // ==========================================================================
