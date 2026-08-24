@@ -81,7 +81,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
        A központi paletta biztosítja, hogy a színek egységesek maradjanak.
        Később könnyen bővíthető pl. egy @media (prefers-color-scheme: dark) blokkal.
        ========================================================================== */
-        :root {
+        .env-calculator {
             --brand-orange: #EA4C15;
             /* Fő arculati szín (Gombok, ikonok, kiemelések, diagramok) */
             --brand-orange-hover: #D13E0E;
@@ -123,15 +123,15 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
        LOKÁLIS TESZTELÉSI KÖRNYEZET (CMS beágyazásnál ezt a részt hagyd ki!)
        Hogy lásd a hátteret és a margókat, amíg lokálisan fejleszted/teszteled.
        ========================================================================== */
-        body {
+        body.eco-calc-standalone {
             background-color: #F0F0F0;
             padding: 2rem 1rem;
         }
-        [data-theme="dark"] body {
+        [data-theme="dark"] body.eco-calc-standalone {
             background-color: #0F0F0F;
         }
         @media (max-width: 480px) {
-            body {
+            body.eco-calc-standalone {
                 padding: 1rem 0.5rem;
             }
         }
@@ -1161,7 +1161,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
     </style>
 </head>
 
-<body>
+<body class="eco-calc-standalone">
 
     <div class="env-calculator" id="calculatorApp">
         <div class="brand-header">
@@ -1571,7 +1571,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 if (format === 'gif') {
                     copyBtn.style.display = 'inline-flex';
                     copyBtn.disabled = true;
-                    copyBtn.innerHTML = `⏳ Indítás...`;
+                    copyBtn.textContent = '⏳ Indítás...';
                     copyBtn.style.opacity = '1';
                     copyBtn.style.cursor = 'wait';
                     copyBtn.title = "A GIF készül a háttérben. Másolás GIF esetén nem elérhető.";
@@ -1886,25 +1886,33 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         const savedTheme = localStorage.getItem('theme');
         const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
+        function applyTheme(theme) {
+            calculatorApp.setAttribute('data-theme', theme);
+            // Csak lokális (nem CMS beágyazott) módban hatunk a globális dokumentumra, hogy a háttér is sötétedjen
+            if (document.body.classList.contains('eco-calc-standalone')) {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+        }
+
         if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            applyTheme('dark');
         } else {
-            document.documentElement.setAttribute('data-theme', 'light');
+            applyTheme('light');
         }
 
         // Dinamikus témafigyelő az OS szintű változásokhoz
         if (window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
                 if (!localStorage.getItem('theme')) {
-                    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+                    applyTheme(e.matches ? 'dark' : 'light');
                 }
             });
         }
 
         themeToggleBtn.addEventListener('click', () => {
-            let currentTheme = document.documentElement.getAttribute('data-theme');
+            let currentTheme = calculatorApp.getAttribute('data-theme');
             let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
+            applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
 
@@ -2288,7 +2296,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
                     if (copyBtn) {
                         copyBtn.disabled = true;
-                        copyBtn.innerHTML = '⏳ 0%';
+                        copyBtn.textContent = '⏳ 0%';
                         copyBtn.style.color = 'var(--brand-orange)';
                         copyBtn.style.borderColor = 'var(--brand-orange)';
                     }
@@ -2300,7 +2308,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
                     try {
                         const blob = await generateGifBlob((p) => {
-                            if (copyBtn) copyBtn.innerHTML = `⏳ ${Math.round(p * 100)}%`;
+                            if (copyBtn) copyBtn.textContent = `⏳ ${Math.round(p * 100)}%`;
                         });
 
                         preRenderedExportFile = new File([blob], 'aikhk-ai-hatas.gif', { type: 'image/gif' });
@@ -2308,7 +2316,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         if (copyBtn) {
                             copyBtn.style.color = '#2e7d32'; // Sötétzöld siker üzenet
                             copyBtn.style.borderColor = '#2e7d32';
-                            copyBtn.innerHTML = '✅ Kész!';
+                            copyBtn.textContent = '✅ Kész!';
                             copyBtn.title = "A GIF sikeresen legenerálva. Használd a letöltést vagy megosztást!";
                             copyBtn.style.cursor = 'default';
                         }
@@ -2321,7 +2329,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         if (copyBtn) {
                             copyBtn.style.color = '#D13E0E'; // Piros hiba üzenet
                             copyBtn.style.borderColor = '#D13E0E';
-                            copyBtn.innerHTML = '❌ Hiba';
+                            copyBtn.textContent = '❌ Hiba';
                         }
                         downloadBtn.disabled = false;
                         shareBtn.disabled = false;
@@ -2797,6 +2805,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 URL.revokeObjectURL(lastDownloadUrl);
             }
             lastDownloadUrl = url;
+            if (url.startsWith('blob:')) activeBlobUrls.add(url);
 
             const downloadLink = document.createElement('a');
             downloadLink.href = url;
@@ -2901,7 +2910,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         // UI DÖCCENÉS GÁTLÓ: Megakadályozzuk a főszál (Main Thread) teljes leblokkolását!
                         // Minden 5. képkocka megrajzolása után átadjuk a vezérlést a böngésző natív képfrissítésének.
                         // Így a felület frissülni tud, elkerülve a teljes kifagyást rajzolás közben.
-                        if (i % 5 === 0) await yieldToBrowser();
+                        if (i % (isMobile ? 2 : 5) === 0) await yieldToBrowser();
                     }
 
                     // Visszajelzés a gomb felületére százalékosan
@@ -2939,7 +2948,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     // A PNG generálása a gombnyomás pillanatában történik (mivel gyors)
                     calculatorApp.style.pointerEvents = 'none';
                     calculatorApp.style.opacity = '0.7';
-                    downloadBtn.innerHTML = 'Készítés...';
+                    downloadBtn.textContent = 'Készítés...';
                     await sleep(50);
                     const canvas = createInfographicCanvas();
                     if (canvas) {
@@ -2977,7 +2986,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 if (currentExportFormat === 'png') {
                     calculatorApp.style.pointerEvents = 'none';
                     calculatorApp.style.opacity = '0.7';
-                    shareBtn.innerHTML = 'Előkészítés...';
+                    shareBtn.textContent = 'Előkészítés...';
                     await sleep(50);
                     const canvas = createInfographicCanvas();
                     if (!canvas) throw new Error("Canvas készítése sikertelen.");
@@ -3037,7 +3046,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     if (currentExportFormat === 'png') {
                         calculatorApp.style.pointerEvents = 'none';
                         calculatorApp.style.opacity = '0.7';
-                        copyBtn.innerHTML = 'Másolás...';
+                        copyBtn.textContent = 'Másolás...';
 
                         // Safari (iOS) igénye: a vágólap API hívásnak szinkron módon kell kezdődnie
                         // a kattintás eseményen belül. Ezért a Promise-t adjuk át a ClipboardItem-nek.
@@ -3067,7 +3076,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     }
 
                     // Siker visszajelzés
-                    copyBtn.innerHTML = '✔ Másolva';
+                    copyBtn.textContent = '✔ Másolva';
                     copyBtn.style.backgroundColor = '#2e7d32'; // Zöld
                     copyBtn.style.color = 'white';
                     copyBtn.style.borderColor = '#2e7d32';
