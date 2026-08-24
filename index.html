@@ -66,7 +66,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MI KHK - MI Környezeti Hatás Kalkulátor</title>
+    <title>AI KHK - AI Környezeti Hatás Kalkulátor</title>
 
     <script>
 // gif.js 0.2.0 - https://github.com/jnordberg/gif.js
@@ -111,21 +111,29 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         }
 
         /* Böngészőfüggetlen dobozmodell (minden elem méretébe beletartozik a padding és a border) */
-        * {
+        .env-calculator *,
+        .env-calculator *::before,
+        .env-calculator *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        /* Az oldal testének alapformázása. Szándékosan világosszürke, hogy a widget kiugorjon. */
+        /* ==========================================================================
+       LOKÁLIS TESZTELÉSI KÖRNYEZET (CMS beágyazásnál ezt a részt hagyd ki!)
+       Hogy lásd a hátteret és a margókat, amíg lokálisan fejleszted/teszteled.
+       ========================================================================== */
         body {
-            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
             background-color: #F0F0F0;
-            color: var(--text-main);
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            /* Jobb betűsimítás Mac/iOS eszközökön */
             padding: 2rem 1rem;
+        }
+        [data-theme="dark"] body {
+            background-color: #0F0F0F;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
         }
 
         /* ==========================================================================
@@ -134,6 +142,10 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
        hogy cikkekbe ágyazva is jól mutasson, de mobilon 100%-ra zsugorodik.
        ========================================================================== */
         .env-calculator {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
             max-width: 740px;
             margin: 0 auto;
             background: var(--bg-color);
@@ -266,7 +278,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             box-shadow: 0 0 0 2px rgba(234, 76, 21, 0.1);
         }
 
-        textarea {
+        .env-calculator textarea {
             width: 100%;
             min-height: 90px;
             background: transparent;
@@ -959,8 +971,8 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
        10. MOBIL NÉZET (RESPONSIVE DESIGN 480px ALATT)
        ========================================================================== */
         @media (max-width: 480px) {
-            body {
-                padding: 1rem 0.5rem;
+            .env-calculator {
+                /* Ha önálló oldalként nyitják meg, mobilon hasznos egy kis belső margó vagy max szélesség finomítás */
             }
 
             .calc-content {
@@ -1039,9 +1051,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             --accent-bg: #3E241B;
         }
 
-        [data-theme="dark"] body {
-            background-color: #0F0F0F;
-        }
+        /* [data-theme="dark"] body { background-color: #0F0F0F; } -- CMS beágyazás miatt eltávolítva */
 
         [data-theme="dark"] .media-card {
             background: var(--input-bg);
@@ -1155,7 +1165,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
     <div class="env-calculator" id="calculatorApp">
         <div class="brand-header">
-            <div class="brand-logo">MI KHK</div>
+            <div class="brand-logo">AI KHK</div>
             <div class="brand-section">Tudomány</div>
             <button id="themeToggle" class="theme-toggle" title="Sötét / Világos mód váltása">
                 <span class="icon-sun">☀️</span>
@@ -1164,7 +1174,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         </div>
 
         <div class="calc-content">
-            <h2 class="app-title">MI Környezeti Hatás Kalkulátor</h2>
+            <h2 class="app-title">AI Környezeti Hatás Kalkulátor</h2>
             <p class="app-description">
                 Kíváncsi vagy, mennyi energiát és vizet emészt fel egyetlen lekérdezés? Gépeld be a kérdésed, válassz a
                 modellek közül, és tudd meg, mekkora a valós fizikai lábnyoma a digitális asszisztenseknek!
@@ -1324,7 +1334,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 </div>
 
                 <div class="energy-header">
-                    <span class="type-text" data-text="Becsült MI Kimenet: "></span>
+                    <span class="type-text" data-text="Becsült AI Kimenet: "></span>
                     <span id="outTokens" class="type-dynamic" style="font-weight: 800;"></span>
                     <span class="type-text" data-text=" token"></span>
                 </div>
@@ -1342,7 +1352,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                             <div class="metric-title-row">
                                 <h4 class="type-text" data-text="Szerver Hűtés"></h4>
                                 <span class="info-badge" tabindex="0"
-                                    data-tooltip="A felhőben dolgozó szervereket hatalmas hűtőtornyok temperálják. A legfrissebb empirikus kutatások alapján a közvetlen adatközponti párologtatást  és az áramellátást biztosító erőművek vízveszteségét aggregálva 1 Wh villamos energia elhasználása során átlagosan 3,1 milliliter édesvíz párolog el végleg a légkörbe.">i</span>
+                                    data-tooltip="A kalkuláció figyelembe veszi az európai adatközpontok átlagos hűtési hatékonyságát (PUE) és a helyi energiamix közvetett vízfelhasználását.">i</span>
                             </div>
                             <p><span id="metricCoolingWater" class="type-dynamic"></span><span class="type-text"
                                     data-text=" ml"></span></p>
@@ -1460,11 +1470,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             </div>
 
             <div class="disclaimer-text">
-                <strong>Kalkulátor Infó:</strong> Ez a program edukációs célokat szolgál, az eredményeket
-                determinisztikus iparági heurisztikák alapján becsüli (nem hív be valódi API-t). A modern FlashAttention
-                keretrendszerek révén a csatolt dokumentumok beolvasása (Prefill) energiahatékonyan fut; a digitális
-                asszisztensek valós ökológiai terhét a kimenetgenerálás (Decode) memória-sávszélesség korlátos pörgetése
-                és a rejtett gondolkodási láncok (Chain-of-Thought) tesztidő-számítása jelenti.
+                <strong>Kalkulátor Infó:</strong> Ez az eszköz szigorúan szemléltető és edukációs célokat szolgál. Noha a modell a legújabb tudományos és iparági kutatásokra (pl. FlashAttention, MoE, Chain-of-Thought) támaszkodik, a zárt AI rendszerek miatt nem látunk be pontosan a "motorháztető alá". A kalkulátor determinisztikus heurisztikák alapján becsüli meg az AI lekérdezések valós ökológiai terhét (áram- és vízfogyasztást), anélkül, hogy valós API hívásokat indítana.
             </div>
         </div>
     </div>
@@ -1477,16 +1483,28 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * és az előre lefordított (pre-compiled) Reguláris Kifejezéseket a jobb teljesítményért.
          */
         const ECO_CONSTANTS = {
-            // Fizikai / Energetikai szorzók
-            WATER_MULTIPLIER: 3.1,      // 1 Wh energia = 3.1 ml hűtővíz elpárolgása (Scope 2+3)
-            PHONE_CHARGE_WH: 22.5,      // Egy átlagos okostelefon teljes feltöltésének energiaigénye
-            LED_WATT_HOURS: 10,         // Egy 10W-os LED izzó 1 órányi fogyasztása
-            WATER_PUMP_RATE: 1.0,       // 1 Wh = 1 liter víz átszivattyúzása a vízműveknél
-            STREAM_WH_PER_MIN: 1.25,    // Netflix/YouTube HD streaming energiaigénye percenként
-            TEA_WH: 25,                 // 1 bögre (250ml) víz felforralásához szükséges energia
+            // FIZIKAI ÉS EURÓPAI KONSTANSOK
+            WATER_MULTIPLIER: 3.1,      // Megtartjuk az alap szorzót fallbackként
+            PHONE_CHARGE_WH: 22.5,
+            LED_WATT_HOURS: 10,
+            WATER_PUMP_RATE: 1.0,
+            STREAM_WH_PER_MIN: 1.25,
+            TEA_WH: 25,
             
-            MAX_PROMPT_LENGTH: 5000,    // Biztonsági (DoS) korlát a bemenetre
+            // ÚJ: Tudományos és Adatközponti Konstansok
+            PUE_EU: 1.15,               // Optimalizált európai adatközpont PUE
+            MFU: 0.45,                  // Hardveres kihasználtság (Model FLOPs Utilization)
+            T_WET_BULB_EU: 15.0,        // Európai átlagos nedves hőmérséklet (Celsius) a WUE számításhoz
+            WUE_OFFSITE_EU: 0.5,        // Közvetett vízfelhasználás az európai energiamix alapján (liter/kWh)
+            PROMPT_CACHING_DISCOUNT: 0.3, // 70% megtakarítás, 30%-ra csökken a prefill energia nagy kontextusnál
 
+            // ÚJ: Polinomiális energia-modellezés (Watt-óra/token közelítések és késleltetés alapú szorzók)
+            PREFILL_ENERGY_A: 6.05e-5,  // Wh/token (lineáris prefill)
+            THINKING_RATIO_MIN: 10,     // Reasoning token szorzó minimum
+            THINKING_RATIO_MAX: 80,     // Reasoning token szorzó maximum
+            
+            MAX_PROMPT_LENGTH: 5000,
+            
             // Szöveg predikciós regexek előfordítva (A böngésző csak egyszer compile-olja őket, gyorsabb a futás)
             REGEX_LONG_OUTPUT: /\b(write|essay|story|írj|esszé|történet)\b/i,
             REGEX_CODE: /\b(code|script|kód|szkript)\b/i,
@@ -1504,6 +1522,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
         // Segédfüggvény a JavaScript szál aszinkron "altatására" animációkhoz (Kiemelve előre, mert többször használjuk)
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 💡 JAVÍTÁS: Segédfüggvény a szál tökéletes, döccenésmentes átadásához (vsync alapú)
+        const yieldToBrowser = () => new Promise(resolve => requestAnimationFrame(resolve));
 
         // GLOBÁLIS ÁLLAPOT (State Snapshot) AZ EXPORTHOZ
         // Ide mentjük a legutolsó sikeres számítás eredményeit, hogy az exportáláskor
@@ -1664,11 +1685,14 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         function calculateContextOverhead(contextType, charCount, wordCount) {
             let totalCharCount = charCount;
             let totalWordCount = wordCount;
-            if (contextType === 'article') { totalCharCount += 5000; totalWordCount += 850; }
-            else if (contextType === 'pdf_small') { totalCharCount += 30000; totalWordCount += 5000; }
-            else if (contextType === 'pdf_large') { totalCharCount += 300000; totalWordCount += 50000; }
-            else if (contextType === 'book') { totalCharCount += 1500000; totalWordCount += 250000; }
-            return { totalCharCount, totalWordCount };
+            let isContextCached = false;
+            
+            if (contextType === 'article') { totalCharCount += 5000; totalWordCount += 850; isContextCached = true; }
+            else if (contextType === 'pdf_small') { totalCharCount += 30000; totalWordCount += 5000; isContextCached = true; }
+            else if (contextType === 'pdf_large') { totalCharCount += 300000; totalWordCount += 50000; isContextCached = true; }
+            else if (contextType === 'book') { totalCharCount += 1500000; totalWordCount += 250000; isContextCached = true; }
+            
+            return { totalCharCount, totalWordCount, isContextCached };
         }
 
         /**
@@ -1702,7 +1726,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const rawWordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
 
             const promptOnlyTokens = Math.max(Math.ceil(rawCharCount / 2.2), Math.ceil(rawWordCount * 2.7));
-            let { totalCharCount, totalWordCount } = calculateContextOverhead(contextType, rawCharCount, rawWordCount);
+            let { totalCharCount, totalWordCount, isContextCached } = calculateContextOverhead(contextType, rawCharCount, rawWordCount);
 
             const inputTokens = Math.max(Math.ceil(totalCharCount / 2.2), Math.ceil(totalWordCount * 2.7));
 
@@ -1710,13 +1734,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const variance = getDeterministicVariance(text, selectedModel, totalCharCount);
             let estimatedOutputTokens = Math.round(baseOutputTokens + variance);
 
-            return { inputTokens, estimatedOutputTokens: Math.max(10, estimatedOutputTokens) };
+            return { inputTokens, estimatedOutputTokens: Math.max(10, estimatedOutputTokens), isContextCached };
         }
 
         /**
          * ENERGIA ÉS VÍZ SZÁMÍTÁS (Watt-óra és Milliliter kiszámítása)
          * 
-         * Kiszámítja az MI lekérdezés teljes energiafogyasztását és vízlábnyomát.
+         * Kiszámítja az AI lekérdezés teljes energiafogyasztását és vízlábnyomát.
          * A modell "Thinking" szintjén büntető tokeneket számol, illetve ha multimédiát (kép/videó)
          * kértek, empirikus médiaadót (Media Tax) is hozzászámol a teljes fizikai értékhez.
          *
@@ -1727,41 +1751,66 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * @param {string} rawPromptText - A felhasználó eredeti kérdése (a komplexitás ellenőrzésére).
          * @returns {Object} { totalEnergyWh: number, datacenterWaterML: number, finalOutputTokens: number }
          */
-        function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType, rawPromptText) {
-            // Disaggregated Prefill vs. Decode Routing alapok (ML.ENERGY EcoLogits H100/B200 benchmarkok alapján)
-            let inRate = 0.05; let outRate = 0.16;
+        function calculateEnergy(inputTokens, outputTokens, modelTier, mediaType, rawPromptText, isContextCached) {
+            // ARCHITEKTÚRA ÉS SZÁMÍTÁSI ASZIMMETRIA MODELLEZÉSE
+            let inputEnergy = 0;
+            let outputEnergy = 0;
+            let finalOutputTokens = outputTokens;
+            let activeParametersMultiplier = 1.0; // Dense modellnél a teljes hálózat, MoE-nél ritkított
 
             if (modelTier === 'light') {
-                inRate = 0.01; outRate = 0.04;
+                // Dense architektúra
+                activeParametersMultiplier = 1.0; 
+                inputEnergy = inputTokens * ECO_CONSTANTS.PREFILL_ENERGY_A * activeParametersMultiplier;
+                outputEnergy = (finalOutputTokens / 1000) * 0.04 * activeParametersMultiplier; // Dense alap decode
             } else if (modelTier === 'medium') {
-                inRate = 0.05; outRate = 0.16;
+                // Mixture-of-Experts (MoE) architektúra (pl. N_active a számításhoz)
+                // A ritkaság (sparsity) miatt fajlagosan hatékonyabb, de nagyobb modellek
+                activeParametersMultiplier = 0.5; // Becsült aktív paraméter arány (MoE)
+                inputEnergy = inputTokens * ECO_CONSTANTS.PREFILL_ENERGY_A * activeParametersMultiplier;
+                outputEnergy = (finalOutputTokens / 1000) * 0.16 * activeParametersMultiplier;
             } else if (modelTier === 'thinking') {
-                inRate = 0.08; outRate = 0.25;
-            }
-
-            // Dynamic Task-Complexity Heuristic (3-szintű gondolkodási fázis szimulálása)
-            let T_thinking = 0;
-            if (modelTier === 'thinking') {
+                // Reasoning modellek (MoE + Test-Time Compute)
+                activeParametersMultiplier = 0.5; 
+                inputEnergy = inputTokens * ECO_CONSTANTS.PREFILL_ENERGY_A * activeParametersMultiplier;
+                
+                // Rejtett iterációs szorzó
+                let thinkingRatio = ECO_CONSTANTS.THINKING_RATIO_MIN;
                 if (ECO_CONSTANTS.REGEX_HIGH_REASONING.test(rawPromptText)) {
-                    T_thinking = 6000 + (inputTokens * 2.0);
+                    thinkingRatio = ECO_CONSTANTS.THINKING_RATIO_MAX;
                 } else if (ECO_CONSTANTS.REGEX_MED_REASONING.test(rawPromptText)) {
-                    T_thinking = Math.round(2000 + (inputTokens * 1.5));
-                } else {
-                    T_thinking = 150;
+                    thinkingRatio = 30;
                 }
+                
+                finalOutputTokens = outputTokens * thinkingRatio;
+                outputEnergy = (finalOutputTokens / 1000) * 0.25 * activeParametersMultiplier;
             }
 
-            const finalOutputTokens = outputTokens + T_thinking;
+            // Prompt Caching beépítése: Ha van dokumentum, a Prefill energiaigény csökken
+            if (isContextCached) {
+                inputEnergy *= ECO_CONSTANTS.PROMPT_CACHING_DISCOUNT;
+            }
 
-            const inputEnergy = (inputTokens / 1000) * inRate;
-            const outputEnergy = (finalOutputTokens / 1000) * outRate;
+            // Hardveres kihasználtság (MFU) korrekciója a nyers aritmetikai igényre
+            inputEnergy = inputEnergy / ECO_CONSTANTS.MFU;
+            outputEnergy = outputEnergy / ECO_CONSTANTS.MFU;
+
             const mediaEnergy = MEDIA_ENERGY_TAX_WH[mediaType] || 0.0;
 
-            // PUE integrálva a referenciarátákba, így csak közvetlen aggregációt hajtunk végre.
-            const totalEnergyWh = inputEnergy + outputEnergy + mediaEnergy;
+            // PUE (Power Usage Effectiveness) alkalmazása a teljes számításra
+            // A szerver energiafogyasztását felszorozzuk az európai adatközpontok hűtési veszteségével (1.15)
+            const serverEnergyWh = inputEnergy + outputEnergy + mediaEnergy;
+            const totalEnergyWh = serverEnergyWh * ECO_CONSTANTS.PUE_EU;
 
-            // WUE (Water Usage Effectiveness) - Scope 2 off-site és adatközpont integrált hűtésvíz terhelés
-            const datacenterWaterML = totalEnergyWh * ECO_CONSTANTS.WATER_MULTIPLIER;
+            // BIFURKÁLT WUE (Vízlábnyom) Logika
+            // On-site WUE kiszámítása a nedves hőmérséklet (T_w) alapján
+            const Tw = ECO_CONSTANTS.T_WET_BULB_EU;
+            let wueOnsite = -0.0001896 * Math.pow(Tw, 2) + 0.03095 * Tw + 0.4442;
+            if (wueOnsite < 0) wueOnsite = 0;
+            
+            // Teljes vízfogyasztás = Szerver energia * (On-site WUE + Off-site WUE)
+            // (A képlet l/kWh-t ad, mi ml/Wh-ra váltjuk, ami numerikusan megegyezik vele)
+            const datacenterWaterML = serverEnergyWh * (wueOnsite + ECO_CONSTANTS.WUE_OFFSITE_EU);
 
             return { totalEnergyWh, datacenterWaterML, finalOutputTokens };
         }
@@ -2033,7 +2082,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
             // Heurisztikai számítások futtatása
             const tokens = calculateTokens(text, selectedContext, selectedModel);
-            const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia, text);
+            const impact = calculateEnergy(tokens.inputTokens, tokens.estimatedOutputTokens, selectedModel, selectedMedia, text, tokens.isContextCached);
             const equivalents = getPhysicalEquivalents(impact.totalEnergyWh);
 
             // UI elemek lezárása az animáció idejére (ne tudjon belekattintani közben)
@@ -2254,7 +2303,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                             if (copyBtn) copyBtn.innerHTML = `⏳ ${Math.round(p * 100)}%`;
                         });
 
-                        preRenderedExportFile = new File([blob], 'mikhk-mi-hatas.gif', { type: 'image/gif' });
+                        preRenderedExportFile = new File([blob], 'aikhk-ai-hatas.gif', { type: 'image/gif' });
 
                         if (copyBtn) {
                             copyBtn.style.color = '#2e7d32'; // Sötétzöld siker üzenet
@@ -2454,12 +2503,12 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '900 26px Arial, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('MI KHK', 120, 84);
+            ctx.fillText('AI KHK', 120, 84);
 
             ctx.fillStyle = '#1A1A1A';
             ctx.font = '900 52px Arial, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('MI KÖRNYEZETI HATÁS', width / 2, 170);
+            ctx.fillText('AI KÖRNYEZETI HATÁS', width / 2, 170);
 
             ctx.fillStyle = '#EA4C15';
             ctx.font = '700 24px Arial, sans-serif';
@@ -2685,13 +2734,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     // Főcím (Készült...)
                     ctx.fillStyle = '#777777';
                     ctx.font = '800 17px Arial, sans-serif';
-                    ctx.fillText('Készült az MI Környezeti Hatás Kalkulátorral', disclaimerX, boxY + 44);
+                    ctx.fillText('Készült az AI Környezeti Hatás Kalkulátorral', disclaimerX, boxY + 44);
 
                     // Magyarázó szövegek (Kisebb, vékonyabb)
                     ctx.fillStyle = '#999999';
                     ctx.font = '400 14px Arial, sans-serif';
-                    ctx.fillText('Az értékek iparági átlagokon (PUE, WUE) és szerver statisztikákon alapuló becslések.', disclaimerX, boxY + 70);
-                    ctx.fillText('A valós lábnyom az adatközpont földrajzi helyétől és hűtési technológiájától függően eltérhet.', disclaimerX, boxY + 92);
+                    ctx.fillText('Szemléltető eszköz. Az értékek iparági átlagokon alapuló becslések.', disclaimerX, boxY + 70);
+                    ctx.fillText('A valós lábnyom a zárt AI rendszerek miatt eltérhet.', disclaimerX, boxY + 92);
 
                     ctx.globalAlpha = 1.0;
                 }
@@ -2748,6 +2797,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // Blob URL regisztrálása a felszabadítási listára (data: URI-knál nem szükséges)
             if (url.startsWith('blob:')) {
                 activeBlobUrls.add(url);
+                // 💡 JAVÍTÁS: 1 másodperc múlva azonnal eltávolítjuk a memóriából a letöltött fájlt
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    activeBlobUrls.delete(url);
+                }, 1000);
             }
         }
 
@@ -2844,9 +2898,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         gif.addFrame(scaledCanvas, { copy: true, delay: currentDelay });
 
                         // UI DÖCCENÉS GÁTLÓ: Megakadályozzuk a főszál (Main Thread) teljes leblokkolását!
-                        // Minden 5. képkocka megrajzolása után adunk 5 milliszekundum "lélegzetvételnyi" időt
-                        // a böngészőnek. Így a felület frissülni tud, elkerülve a teljes kifagyást rajzolás közben.
-                        if (i % 5 === 0) await sleep(5);
+                        // Minden 5. képkocka megrajzolása után átadjuk a vezérlést a böngésző natív képfrissítésének.
+                        // Így a felület frissülni tud, elkerülve a teljes kifagyást rajzolás közben.
+                        if (i % 5 === 0) await yieldToBrowser();
                     }
 
                     // Visszajelzés a gomb felületére százalékosan
@@ -2855,6 +2909,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     });
 
                     gif.on('finished', function (blob) {
+                        // 💡 JAVÍTÁS: Kényszerített Worker takarítás a memóriaszivárgás ellen
+                        if (gif.freeWorkers) {
+                            gif.freeWorkers.forEach(worker => worker.terminate());
+                        }
+                        if (gif.activeWorkers) {
+                            gif.activeWorkers.forEach(worker => worker.terminate());
+                        }
                         resolve(blob);
                     });
 
