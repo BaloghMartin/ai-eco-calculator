@@ -2786,23 +2786,24 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * @param {string} url - A letöltendő fájl Blob URL-je vagy Data URI-ja.
          * @param {string} filename - A kliensnek felkínált alapértelmezett fájlnév mentéskor.
          */
+        let lastDownloadUrl = null;
+
         function triggerDownload(url, filename) {
+            // JAVÍTÁS: Mindig csak a legutolsó letöltött fájl URL-jét tartjuk memóriában.
+            // Amikor egy újat generálunk, az előzőt töröljük.
+            // Így sosem jár le a memóriacím amíg a felhasználó a böngésző promptjára vár (akár órákig is), 
+            // viszont megakadályozzuk a memóriaszivárgást is (maximum 1 fájl marad a memóriában).
+            if (lastDownloadUrl && lastDownloadUrl !== url && lastDownloadUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(lastDownloadUrl);
+            }
+            lastDownloadUrl = url;
+
             const downloadLink = document.createElement('a');
             downloadLink.href = url;
             downloadLink.download = filename;
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
-
-            // Blob URL regisztrálása a felszabadítási listára (data: URI-knál nem szükséges)
-            if (url.startsWith('blob:')) {
-                activeBlobUrls.add(url);
-                // 💡 JAVÍTÁS: 60 másodperc múlva távolítjuk el, hogy az iOS Safari letöltési promptja ne ütközzön egy már törölt memóriacímmel.
-                setTimeout(() => {
-                    URL.revokeObjectURL(url);
-                    activeBlobUrls.delete(url);
-                }, 60000);
-            }
         }
 
         // ==========================================================================
