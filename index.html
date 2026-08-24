@@ -2797,11 +2797,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // Blob URL regisztrálása a felszabadítási listára (data: URI-knál nem szükséges)
             if (url.startsWith('blob:')) {
                 activeBlobUrls.add(url);
-                // 💡 JAVÍTÁS: 1 másodperc múlva azonnal eltávolítjuk a memóriából a letöltött fájlt
+                // 💡 JAVÍTÁS: 60 másodperc múlva távolítjuk el, hogy az iOS Safari letöltési promptja ne ütközzön egy már törölt memóriacímmel.
                 setTimeout(() => {
                     URL.revokeObjectURL(url);
                     activeBlobUrls.delete(url);
-                }, 1000);
+                }, 60000);
             }
         }
 
@@ -2942,8 +2942,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     await sleep(50);
                     const canvas = createInfographicCanvas();
                     if (canvas) {
-                        const imageURL = canvas.toDataURL('image/png');
-                        triggerDownload(imageURL, 'mikhk-mi-hatas.png');
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                        if (blob) {
+                            const objectUrl = URL.createObjectURL(blob);
+                            triggerDownload(objectUrl, 'aikhk-ai-hatas.png');
+                        }
                     }
                 }
                 else if (currentExportFormat === 'gif' && preRenderedExportFile) {
@@ -2978,7 +2981,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     const canvas = createInfographicCanvas();
                     if (!canvas) throw new Error("Canvas készítése sikertelen.");
                     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                    shareFile = new File([blob], 'mikhk-mi-hatas.png', { type: 'image/png' });
+                    shareFile = new File([blob], 'aikhk-ai-hatas.png', { type: 'image/png' });
                 }
                 else if (currentExportFormat === 'gif' && preRenderedExportFile) {
                     // INSTANT MEGOSZTÁS a már előre legenerált háttér fájlból
