@@ -24,55 +24,70 @@ linguistic cues (verbs, syntax, and length).
 SCIENTIFIC METHODOLOGY & CONSTANTS (2024-2026 Empirical Data):
 
 1. Token Estimation (BPE Approximation)
-   - Real LLMs use Byte Pair Encoding (BPE). For the Hungarian language morphology, 
+   - Real LLMs use Byte Pair Encoding (BPE). For the Hungarian language morphology,
      1 token is roughly 2.2 characters or 1 word translates to 2.7 tokens.
    - We calculate both and take the maximum to accurately capture language density.
-   
-2. Energy Footprint (Watt-hours per 1,000 tokens)
-   - Input processing (Prefill) is parallelized and significantly cheaper.
-   - Output generation (Decode) is autoregressive and expensive.
-   - Light (e.g., Llama 3 8B): Input = 0.01 Wh | Output = 0.04 Wh
-   - Medium (e.g., GPT-4o): Input = 0.05 Wh | Output = 0.16 Wh
-   - Thinking (e.g., o1): Input = 0.08 Wh | Output = 0.25 Wh
-   * Note: Energy rates above already integrate PUE overhead.
-   * Thinking models evaluate a hidden "Chain-of-Thought". Depending on the 
-     complexity of the prompt, we add between 150 to 6000+ extra internal 
-     reasoning tokens to simulate this compute tax.
+   - Output length is predicted deterministically using Unicode-safe intent regexes
+     plus an FNV-1a deterministic variance (-25 to +25 tokens).
 
-3. Datacenter Overhead
-   - Power Usage Effectiveness (PUE) is integrated directly into the reference rates. 
-     This accounts for the non-compute energy used by the facility (HVAC cooling, 
-     lighting).
-   - Water Usage Effectiveness (WUE): Datacenters evaporate roughly 3.1 mL of 
-     fresh water per Watt-hour consumed to cool the hardware (including Scope 2 
-     off-site impact).
+2. Energy Footprint (Prefill, Decode, MoE, MFU & Prompt Caching)
+   - Input processing (Prefill) is parallelized: PREFILL_ENERGY_A = 6.05e-5 Wh/token
+     scaled by active parameter ratio (1.0 Dense for Light; 0.5 MoE for Medium/Thinking).
+   - Attached documents (Article/PDF/Book) apply a Prompt Caching discount (0.3x, i.e.,
+     70% prefill savings).
+   - Output generation (Decode) is autoregressive:
+     - Light (Dense): 0.04 Wh / 1,000 tokens
+     - Medium (MoE): 0.16 Wh / 1,000 tokens (x 0.5 active ratio)
+     - Thinking (MoE + CoT): 0.25 Wh / 1,000 tokens (x 0.5 active ratio), with hidden
+       Chain-of-Thought multipliers (10x base, 30x medium reasoning, 80x high reasoning)
+   - Hardware efficiency: raw compute energy is divided by MFU = 0.45 (Model FLOPs
+     Utilization).
+   - Multimodal Media Tax: Image (+2.9 Wh), Podcast (+2.0 Wh), HD Video (+25.0 Wh).
+
+3. Datacenter Overhead (European PUE & Bifurcated WUE)
+   - Power Usage Effectiveness: PUE_EU = 1.15 applied to total server energy
+     (totalEnergyWh = serverEnergyWh * 1.15).
+   - Water Usage Effectiveness (WUE): bifurcated model combining European wet-bulb
+     on-site evaporative cooling (T_w = 15.0 C -> ~0.866 mL/Wh) plus indirect off-site
+     grid water intensity (WUE_OFFSITE_EU = 0.5 mL/Wh), totaling ~1.37 mL/Wh of server energy.
 
 4. Real-World Physical Equivalents
-   - Smartphone: An average full charge requires ~22.5 Wh from the wall due 
+   - Smartphone: An average full charge requires ~22.5 Wh from the wall due
      to charging efficiency and heat loss.
    - LED Bulb: A 10W LED bulb consumes 10 Wh in 60 minutes.
-   - Tap Water: Municipal water treatment uses ~1.0 Wh to distribute 1 liter 
+   - Tap Water: Municipal water treatment uses ~1.0 Wh to distribute 1 liter
      of clean drinking water.
    - HD Stream: Streaming high-definition video consumes ~1.25 Wh per minute.
    - Tea: Boiling a cup of water (~250 ml) requires ~25 Wh.
 ================================================================================
-RECENT ARCHITECTURAL UPDATES (v2.0):
+RECENT ARCHITECTURAL UPDATES:
+v2.0:
 - CDN Independence: The gif.js library and worker have been entirely inlined into this HTML file. The tool is now 100% offline-capable and immune to strict Content Security Policies (CSP) or CDN outages.
 - Enhanced Word-wrap: The canvas text rendering engine now natively respects manual line breaks (\n), ensuring perfectly formatted exports for poems, code snippets, or structured prompts.
 - Graceful Fallbacks: Enhanced error handling for the Async Clipboard API. Specifically prevents silent failures on Firefox when attempting to copy image/gif blobs to the clipboard, guiding users to alternative actions.
 - Dynamic Theme Engine: Added an active matchMedia listener to dynamically switch between dark and light modes in real-time when the OS theme changes, without requiring a page refresh.
 - Performance & UI: Removed redundant event listeners on tooltip badges to prevent flickering issues on mobile devices.
+
+v2.1:
+- Iframe Embed Mode: Flash-free detection in <head> (html.is-embedded / ?embed=1), isolated <script type="javascript/worker"> GIF worker, try/catch-guarded localStorage, inline #statusNotice banner (no alert() in cross-origin frames), and ResizeObserver/postMessage auto-resize (eco-calc-resize, eco-calc-ping, eco-calc-scroll-to).
+- Edge-Case & Security Hardening: Auto-resizing prompt input (90px-360px), Unicode-safe Hungarian intent regexes, < 0,01 formatting for tiny values, emoji-safe binary-search Canvas wrapping capped at 10 lines, fitFontSize() overflow protection, 45s GIF worker timeout, zero innerHTML, unified 599px breakpoint, and Pointer Events tooltips.
 ================================================================================
 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI KHK - AI Környezeti Hatás Kalkulátor</title>
+    <script>
+        (function () {
+            var embedded = false;
+            try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+            if (!embedded && new URLSearchParams(window.location.search).get('embed') === '1') embedded = true;
+            if (embedded) document.documentElement.classList.add('is-embedded');
+        })();
+    </script>
 
     <script>
 // gif.js 0.2.0 - https://github.com/jnordberg/gif.js
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.GIF=f()}})(function(){var define,module,exports;return function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}({1:[function(require,module,exports){function EventEmitter(){this._events=this._events||{};this._maxListeners=this._maxListeners||undefined}module.exports=EventEmitter;EventEmitter.EventEmitter=EventEmitter;EventEmitter.prototype._events=undefined;EventEmitter.prototype._maxListeners=undefined;EventEmitter.defaultMaxListeners=10;EventEmitter.prototype.setMaxListeners=function(n){if(!isNumber(n)||n<0||isNaN(n))throw TypeError("n must be a positive number");this._maxListeners=n;return this};EventEmitter.prototype.emit=function(type){var er,handler,len,args,i,listeners;if(!this._events)this._events={};if(type==="error"){if(!this._events.error||isObject(this._events.error)&&!this._events.error.length){er=arguments[1];if(er instanceof Error){throw er}else{var err=new Error('Uncaught, unspecified "error" event. ('+er+")");err.context=er;throw err}}}handler=this._events[type];if(isUndefined(handler))return false;if(isFunction(handler)){switch(arguments.length){case 1:handler.call(this);break;case 2:handler.call(this,arguments[1]);break;case 3:handler.call(this,arguments[1],arguments[2]);break;default:args=Array.prototype.slice.call(arguments,1);handler.apply(this,args)}}else if(isObject(handler)){args=Array.prototype.slice.call(arguments,1);listeners=handler.slice();len=listeners.length;for(i=0;i<len;i++)listeners[i].apply(this,args)}return true};EventEmitter.prototype.addListener=function(type,listener){var m;if(!isFunction(listener))throw TypeError("listener must be a function");if(!this._events)this._events={};if(this._events.newListener)this.emit("newListener",type,isFunction(listener.listener)?listener.listener:listener);if(!this._events[type])this._events[type]=listener;else if(isObject(this._events[type]))this._events[type].push(listener);else this._events[type]=[this._events[type],listener];if(isObject(this._events[type])&&!this._events[type].warned){if(!isUndefined(this._maxListeners)){m=this._maxListeners}else{m=EventEmitter.defaultMaxListeners}if(m&&m>0&&this._events[type].length>m){this._events[type].warned=true;console.error("(node) warning: possible EventEmitter memory "+"leak detected. %d listeners added. "+"Use emitter.setMaxListeners() to increase limit.",this._events[type].length);if(typeof console.trace==="function"){console.trace()}}}return this};EventEmitter.prototype.on=EventEmitter.prototype.addListener;EventEmitter.prototype.once=function(type,listener){if(!isFunction(listener))throw TypeError("listener must be a function");var fired=false;function g(){this.removeListener(type,g);if(!fired){fired=true;listener.apply(this,arguments)}}g.listener=listener;this.on(type,g);return this};EventEmitter.prototype.removeListener=function(type,listener){var list,position,length,i;if(!isFunction(listener))throw TypeError("listener must be a function");if(!this._events||!this._events[type])return this;list=this._events[type];length=list.length;position=-1;if(list===listener||isFunction(list.listener)&&list.listener===listener){delete this._events[type];if(this._events.removeListener)this.emit("removeListener",type,listener)}else if(isObject(list)){for(i=length;i-- >0;){if(list[i]===listener||list[i].listener&&list[i].listener===listener){position=i;break}}if(position<0)return this;if(list.length===1){list.length=0;delete this._events[type]}else{list.splice(position,1)}if(this._events.removeListener)this.emit("removeListener",type,listener)}return this};EventEmitter.prototype.removeAllListeners=function(type){var key,listeners;if(!this._events)return this;if(!this._events.removeListener){if(arguments.length===0)this._events={};else if(this._events[type])delete this._events[type];return this}if(arguments.length===0){for(key in this._events){if(key==="removeListener")continue;this.removeAllListeners(key)}this.removeAllListeners("removeListener");this._events={};return this}listeners=this._events[type];if(isFunction(listeners)){this.removeListener(type,listeners)}else if(listeners){while(listeners.length)this.removeListener(type,listeners[listeners.length-1])}delete this._events[type];return this};EventEmitter.prototype.listeners=function(type){var ret;if(!this._events||!this._events[type])ret=[];else if(isFunction(this._events[type]))ret=[this._events[type]];else ret=this._events[type].slice();return ret};EventEmitter.prototype.listenerCount=function(type){if(this._events){var evlistener=this._events[type];if(isFunction(evlistener))return 1;else if(evlistener)return evlistener.length}return 0};EventEmitter.listenerCount=function(emitter,type){return emitter.listenerCount(type)};function isFunction(arg){return typeof arg==="function"}function isNumber(arg){return typeof arg==="number"}function isObject(arg){return typeof arg==="object"&&arg!==null}function isUndefined(arg){return arg===void 0}},{}],2:[function(require,module,exports){var UA,browser,mode,platform,ua;ua=navigator.userAgent.toLowerCase();platform=navigator.platform.toLowerCase();UA=ua.match(/(opera|ie|firefox|chrome|version)[\s\/:]([\w\d\.]+)?.*?(safari|version[\s\/:]([\w\d\.]+)|$)/)||[null,"unknown",0];mode=UA[1]==="ie"&&document.documentMode;browser={name:UA[1]==="version"?UA[3]:UA[1],version:mode||parseFloat(UA[1]==="opera"&&UA[4]?UA[4]:UA[2]),platform:{name:ua.match(/ip(?:ad|od|hone)/)?"ios":(ua.match(/(?:webos|android)/)||platform.match(/mac|win|linux/)||["other"])[0]}};browser[browser.name]=true;browser[browser.name+parseInt(browser.version,10)]=true;browser.platform[browser.platform.name]=true;module.exports=browser},{}],3:[function(require,module,exports){var EventEmitter,GIF,browser,extend=function(child,parent){for(var key in parent){if(hasProp.call(parent,key))child[key]=parent[key]}function ctor(){this.constructor=child}ctor.prototype=parent.prototype;child.prototype=new ctor;child.__super__=parent.prototype;return child},hasProp={}.hasOwnProperty,indexOf=[].indexOf||function(item){for(var i=0,l=this.length;i<l;i++){if(i in this&&this[i]===item)return i}return-1},slice=[].slice;EventEmitter=require("events").EventEmitter;browser=require("./browser.coffee");GIF=function(superClass){var defaults,frameDefaults;extend(GIF,superClass);defaults={workerScript:"gif.worker.js",workers:2,repeat:0,background:"#fff",quality:10,width:null,height:null,transparent:null,debug:false,dither:false};frameDefaults={delay:500,copy:false};function GIF(options){var base,key,value;this.running=false;this.options={};this.frames=[];this.freeWorkers=[];this.activeWorkers=[];this.setOptions(options);for(key in defaults){value=defaults[key];if((base=this.options)[key]==null){base[key]=value}}}GIF.prototype.setOption=function(key,value){this.options[key]=value;if(this._canvas!=null&&(key==="width"||key==="height")){return this._canvas[key]=value}};GIF.prototype.setOptions=function(options){var key,results,value;results=[];for(key in options){if(!hasProp.call(options,key))continue;value=options[key];results.push(this.setOption(key,value))}return results};GIF.prototype.addFrame=function(image,options){var frame,key;if(options==null){options={}}frame={};frame.transparent=this.options.transparent;for(key in frameDefaults){frame[key]=options[key]||frameDefaults[key]}if(this.options.width==null){this.setOption("width",image.width)}if(this.options.height==null){this.setOption("height",image.height)}if(typeof ImageData!=="undefined"&&ImageData!==null&&image instanceof ImageData){frame.data=image.data}else if(typeof CanvasRenderingContext2D!=="undefined"&&CanvasRenderingContext2D!==null&&image instanceof CanvasRenderingContext2D||typeof WebGLRenderingContext!=="undefined"&&WebGLRenderingContext!==null&&image instanceof WebGLRenderingContext){if(options.copy){frame.data=this.getContextData(image)}else{frame.context=image}}else if(image.childNodes!=null){if(options.copy){frame.data=this.getImageData(image)}else{frame.image=image}}else{throw new Error("Invalid image")}return this.frames.push(frame)};GIF.prototype.render=function(){var i,j,numWorkers,ref;if(this.running){throw new Error("Already running")}if(this.options.width==null||this.options.height==null){throw new Error("Width and height must be set prior to rendering")}this.running=true;this.nextFrame=0;this.finishedFrames=0;this.imageParts=function(){var j,ref,results;results=[];for(i=j=0,ref=this.frames.length;0<=ref?j<ref:j>ref;i=0<=ref?++j:--j){results.push(null)}return results}.call(this);numWorkers=this.spawnWorkers();if(this.options.globalPalette===true){this.renderNextFrame()}else{for(i=j=0,ref=numWorkers;0<=ref?j<ref:j>ref;i=0<=ref?++j:--j){this.renderNextFrame()}}this.emit("start");return this.emit("progress",0)};GIF.prototype.abort=function(){var worker;while(true){worker=this.activeWorkers.shift();if(worker==null){break}this.log("killing active worker");worker.terminate()}this.running=false;return this.emit("abort")};GIF.prototype.spawnWorkers=function(){var j,numWorkers,ref,results;numWorkers=Math.min(this.options.workers,this.frames.length);(function(){results=[];for(var j=ref=this.freeWorkers.length;ref<=numWorkers?j<numWorkers:j>numWorkers;ref<=numWorkers?j++:j--){results.push(j)}return results}).apply(this).forEach(function(_this){return function(i){var worker;_this.log("spawning worker "+i);worker=new Worker(_this.options.workerScript);worker.onmessage=function(event){_this.activeWorkers.splice(_this.activeWorkers.indexOf(worker),1);_this.freeWorkers.push(worker);return _this.frameFinished(event.data)};return _this.freeWorkers.push(worker)}}(this));return numWorkers};GIF.prototype.frameFinished=function(frame){var i,j,ref;this.log("frame "+frame.index+" finished - "+this.activeWorkers.length+" active");this.finishedFrames++;this.emit("progress",this.finishedFrames/this.frames.length);this.imageParts[frame.index]=frame;if(this.options.globalPalette===true){this.options.globalPalette=frame.globalPalette;this.log("global palette analyzed");if(this.frames.length>2){for(i=j=1,ref=this.freeWorkers.length;1<=ref?j<ref:j>ref;i=1<=ref?++j:--j){this.renderNextFrame()}}}if(indexOf.call(this.imageParts,null)>=0){return this.renderNextFrame()}else{return this.finishRendering()}};GIF.prototype.finishRendering=function(){var data,frame,i,image,j,k,l,len,len1,len2,len3,offset,page,ref,ref1,ref2;len=0;ref=this.imageParts;for(j=0,len1=ref.length;j<len1;j++){frame=ref[j];len+=(frame.data.length-1)*frame.pageSize+frame.cursor}len+=frame.pageSize-frame.cursor;this.log("rendering finished - filesize "+Math.round(len/1e3)+"kb");data=new Uint8Array(len);offset=0;ref1=this.imageParts;for(k=0,len2=ref1.length;k<len2;k++){frame=ref1[k];ref2=frame.data;for(i=l=0,len3=ref2.length;l<len3;i=++l){page=ref2[i];data.set(page,offset);if(i===frame.data.length-1){offset+=frame.cursor}else{offset+=frame.pageSize}}}image=new Blob([data],{type:"image/gif"});return this.emit("finished",image,data)};GIF.prototype.renderNextFrame=function(){var frame,task,worker;if(this.freeWorkers.length===0){throw new Error("No free workers")}if(this.nextFrame>=this.frames.length){return}frame=this.frames[this.nextFrame++];worker=this.freeWorkers.shift();task=this.getTask(frame);this.log("starting frame "+(task.index+1)+" of "+this.frames.length);this.activeWorkers.push(worker);return worker.postMessage(task)};GIF.prototype.getContextData=function(ctx){return ctx.getImageData(0,0,this.options.width,this.options.height).data};GIF.prototype.getImageData=function(image){var ctx;if(this._canvas==null){this._canvas=document.createElement("canvas");this._canvas.width=this.options.width;this._canvas.height=this.options.height}ctx=this._canvas.getContext("2d");ctx.setFill=this.options.background;ctx.fillRect(0,0,this.options.width,this.options.height);ctx.drawImage(image,0,0);return this.getContextData(ctx)};GIF.prototype.getTask=function(frame){var index,task;index=this.frames.indexOf(frame);task={index:index,last:index===this.frames.length-1,delay:frame.delay,transparent:frame.transparent,width:this.options.width,height:this.options.height,quality:this.options.quality,dither:this.options.dither,globalPalette:this.options.globalPalette,repeat:this.options.repeat,canTransfer:browser.name==="chrome"};if(frame.data!=null){task.data=frame.data}else if(frame.context!=null){task.data=this.getContextData(frame.context)}else if(frame.image!=null){task.data=this.getImageData(frame.image)}else{throw new Error("Invalid frame")}return task};GIF.prototype.log=function(){var args;args=1<=arguments.length?slice.call(arguments,0):[];if(!this.options.debug){return}return console.log.apply(console,args)};return GIF}(EventEmitter);module.exports=GIF},{"./browser.coffee":2,events:1}]},{},[3])(3)});
-//# sourceMappingURL=gif.js.map
-
 </script>
 
     <style>
@@ -111,29 +126,46 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         }
 
         /* Böngészőfüggetlen dobozmodell (minden elem méretébe beletartozik a padding és a border) */
+        .env-calculator,
         .env-calculator *,
         .env-calculator *::before,
         .env-calculator *::after {
             box-sizing: border-box;
+        }
+        .env-calculator *,
+        .env-calculator *::before,
+        .env-calculator *::after {
             margin: 0;
             padding: 0;
         }
 
+        .env-calculator [hidden] {
+            display: none !important;
+        }
+
+        .send-btn,
+        .random-btn,
+        .radio-label,
+        .media-summary,
+        .media-card-label,
+        .toggle-btn,
+        .export-btn,
+        .info-badge,
+        .theme-toggle {
+            touch-action: manipulation;
+        }
+
         /* ==========================================================================
-       LOKÁLIS TESZTELÉSI KÖRNYEZET (CMS beágyazásnál ezt a részt hagyd ki!)
-       Hogy lásd a hátteret és a margókat, amíg lokálisan fejleszted/teszteled.
+       ÖNÁLLÓ (STANDALONE) KÖRNYEZET
+       Beágyazott (iframe / ?embed=1) módban a html.is-embedded automatikusan felülírja.
        ========================================================================== */
         body.eco-calc-standalone {
+            margin: 0;
             background-color: #F0F0F0;
             padding: 2rem 1rem;
         }
         [data-theme="dark"] body.eco-calc-standalone {
             background-color: #0F0F0F;
-        }
-        @media (max-width: 480px) {
-            body.eco-calc-standalone {
-                padding: 1rem 0.5rem;
-            }
         }
 
         /* ==========================================================================
@@ -281,24 +313,32 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         .env-calculator textarea {
             width: 100%;
             min-height: 90px;
+            max-height: 360px;
             background: transparent;
             border: none;
             font-family: inherit;
             font-size: 1.05rem;
+            line-height: 1.5;
+            padding-bottom: 4px;
             color: var(--text-main);
-            resize: vertical;
-            /* Csak függőlegesen nyújtható */
+            resize: none;
+            overflow-y: hidden;
             outline: none;
             /* Kikapcsoljuk az alap böngészős kék fókuszt */
         }
 
         /* A szövegdobozon belülre ágyazott RAG (háttéranyag) választó stílusai */
-        .context-in-input {
+        .media-details.context-in-input {
             margin: 0.5rem 0 0 0;
             border: none;
             border-top: 1px dashed var(--border-color);
             background: transparent;
             border-radius: 0;
+        }
+
+        .media-details.context-in-input[open] {
+            background: transparent;
+            border-color: var(--border-color);
         }
 
         .context-in-input .media-summary {
@@ -698,8 +738,8 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         /* CSS Grid a 6 db alsó fizikai egyenérték kártyának. Auto-fit garantálja a responsivitást. */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+            gap: 0.85rem;
         }
 
         .metric-card {
@@ -784,20 +824,19 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             background-color: #EAEAEA;
             color: var(--brand-dark-gray);
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 900;
             cursor: pointer;
             border-radius: 50%;
             position: relative;
             transition: all 0.2s ease;
             flex-shrink: 0;
-            /* --tt-x változó: Alapból -50% (középre igazított), de JS tudja módosítani, 
-           ha a képernyő szélén lévő kártya tooltipje kilógna. */
-            --tt-x: -50%;
+            /* --tt-shift változó: JS állítja pixelpontosan, ha a kártya szélén kilógna a buborék. */
+            --tt-shift: 0px;
         }
 
         /* Az (i) ikon továbbra is narancsra vált, ha konkrétan rajta van az egér */
@@ -814,7 +853,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             position: absolute;
             bottom: 140%;
             left: 50%;
-            transform: translateX(var(--tt-x));
+            transform: translateX(calc(-50% + var(--tt-shift, 0px)));
             /* JS által felülírt X koordináta alkalmazása */
             background-color: var(--brand-black);
             color: #FFFFFF;
@@ -967,71 +1006,24 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             line-height: 1.4;
         }
 
-        /* ==========================================================================
-       10. MOBIL NÉZET (RESPONSIVE DESIGN 480px ALATT)
-       ========================================================================== */
-        @media (max-width: 480px) {
-            .env-calculator {
-                /* Ha önálló oldalként nyitják meg, mobilon hasznos egy kis belső margó vagy max szélesség finomítás */
-            }
+        /* Inline státusz/figyelmeztető sáv (cross-origin iframe-ben tiltott alert() helyett) */
+        .status-notice {
+            margin-top: 1.25rem;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            font-weight: 600;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
 
-            .calc-content {
-                padding: 1.25rem;
-            }
-
-            /* Modellszelektáló gombok összepréselése */
-            .radio-btn {
-                font-size: 0.75rem;
-                padding: 0.5rem 0.1rem;
-            }
-
-            .radio-btn .emoji {
-                font-size: 1.1rem;
-            }
-
-            .model-selector {
-                gap: 0.35rem;
-            }
-
-            .input-bottom-row {
-                flex-wrap: wrap;
-            }
-
-            .input-bottom-row>div:nth-child(2) {
-                margin-left: auto;
-                margin-top: 0.5rem;
-            }
-
-            /* A grid kártyákat 2 oszloposra szűkítjük mobil nézetben */
-            .media-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.5rem;
-            }
-
-            .context-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.5rem;
-            }
-
-            .media-card {
-                padding: 0.75rem 0.25rem;
-            }
-
-            /* Cím és Fő metrika zsugorítása a kifolyás ellen */
-            .app-title {
-                font-size: 1.5rem;
-            }
-
-            .output-focus #totEnergy {
-                font-size: 2.8rem;
-            }
-
-            /* A fizikai metrika kártyákat 1 oszlopba (egymás alá) pakoljuk */
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            /* Export gombok is egymás alá kerülnek kis képernyőn */
+        .status-notice[data-type="warn"],
+        .status-notice[data-type="error"] {
+            background: var(--accent-bg);
+            border-color: var(--brand-orange);
+            color: var(--text-main);
         }
 
         /* ==========================================================================
@@ -1091,11 +1083,6 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             border-color: #777777;
         }
 
-        [data-theme="dark"] .metric-unit {
-            background-color: #333333;
-            color: #CCCCCC;
-        }
-
         [data-theme="dark"] .metric-card.cooling-card {
             background-color: #1B2936;
             border-color: #263C52;
@@ -1151,8 +1138,101 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             background-color: var(--brand-orange-hover);
         }
 
-        /* Export gombok egymás alá kerülnek kis képernyőn */
-        @media (max-width: 600px) {
+        /* ==========================================================================
+       12. BEÁGYAZOTT MÓD (IFRAME) ÉS EGYSÉGES MOBIL NÉZET (599px ALATT)
+       ========================================================================== */
+        html.is-embedded,
+        html.is-embedded body,
+        html.is-embedded body.eco-calc-standalone {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            height: auto;
+            min-height: 0;
+            overflow-x: hidden;
+        }
+
+        html.is-embedded .env-calculator {
+            max-width: none;
+            width: 100%;
+            margin: 0;
+            box-shadow: none;
+        }
+
+        html.is-embedded .calc-content {
+            padding: 1.5rem;
+        }
+
+        html.is-embedded .theme-toggle {
+            display: none;
+        }
+
+        @media (max-width: 599px) {
+            html:not(.is-embedded) body.eco-calc-standalone {
+                padding: 1rem 0.5rem;
+            }
+
+            .brand-header {
+                padding: 0.75rem 1rem;
+                gap: 10px;
+            }
+
+            .calc-content {
+                padding: 1.25rem;
+            }
+
+            html.is-embedded .calc-content {
+                padding: 1rem;
+            }
+
+            /* Modellszelektáló gombok összepréselése */
+            .radio-btn {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.1rem;
+            }
+
+            .radio-btn .emoji {
+                font-size: 1.1rem;
+            }
+
+            .model-selector {
+                gap: 0.35rem;
+            }
+
+            .input-bottom-row {
+                flex-wrap: wrap;
+            }
+
+            .input-bottom-row>div:nth-child(2) {
+                margin-left: auto;
+                margin-top: 0.5rem;
+            }
+
+            /* A grid kártyákat 2 oszloposra szűkítjük mobil nézetben */
+            .media-grid,
+            .context-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+
+            .media-card {
+                padding: 0.75rem 0.25rem;
+            }
+
+            /* Cím és Fő metrika zsugorítása a kifolyás ellen */
+            .app-title {
+                font-size: 1.5rem;
+            }
+
+            .output-focus #totEnergy {
+                font-size: 2.8rem;
+            }
+
+            /* A fizikai metrika kártyákat és export gombokat 1 oszlopba (egymás alá) pakoljuk */
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
             .export-actions {
                 grid-template-columns: 1fr;
                 gap: 0.5rem;
@@ -1167,7 +1247,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         <div class="brand-header">
             <div class="brand-logo">AI KHK</div>
             <div class="brand-section">Tudomány</div>
-            <button id="themeToggle" class="theme-toggle" title="Sötét / Világos mód váltása">
+            <button type="button" id="themeToggle" class="theme-toggle" title="Sötét / Világos mód váltása">
                 <span class="icon-sun">☀️</span>
                 <span class="icon-moon">🌙</span>
             </button>
@@ -1246,9 +1326,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 <div class="input-bottom-row">
                     <div class="char-count"><span id="charCount">0</span> / 5000 karakter</div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button id="randomBtn" class="random-btn" title="Véletlenszerű példa betöltése">🎲</button>
-                        <button id="calcBtn" class="send-btn" title="Hatás Kiszámítása">
-                            Számítás
+                        <button type="button" id="randomBtn" class="random-btn" title="Véletlenszerű példa betöltése">🎲</button>
+                        <button type="button" id="calcBtn" class="send-btn" title="Hatás Kiszámítása">
+                            <span class="btn-label">Számítás</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1430,31 +1510,31 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     <div class="export-actions">
                         <div class="format-toggle-wrapper">
                             <div class="format-toggle">
-                                <button id="formatPng" class="toggle-btn active" data-format="png">Kép</button>
-                                <button id="formatGif" class="toggle-btn" data-format="gif">GIF</button>
+                                <button type="button" id="formatPng" class="toggle-btn active" data-format="png">Kép</button>
+                                <button type="button" id="formatGif" class="toggle-btn" data-format="gif">GIF</button>
                             </div>
                         </div>
 
-                        <button id="copyBtn" class="export-btn">
+                        <button type="button" id="copyBtn" class="export-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
-                            Másolás
+                            <span class="btn-label">Másolás</span>
                         </button>
 
-                        <button id="downloadBtn" class="export-btn">
+                        <button type="button" id="downloadBtn" class="export-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
-                            Mentés
+                            <span class="btn-label">Mentés</span>
                         </button>
 
-                        <button id="shareBtn" class="export-btn share-btn">
+                        <button type="button" id="shareBtn" class="export-btn share-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <circle cx="18" cy="5" r="3"></circle>
@@ -1463,11 +1543,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
                                 <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                             </svg>
-                            Megosztás
+                            <span class="btn-label">Megosztás</span>
                         </button>
                     </div>
                 </div>
             </div>
+
+            <div id="statusNotice" class="status-notice" role="status" aria-live="polite" hidden></div>
 
             <div class="disclaimer-text">
                 <strong>Kalkulátor Infó:</strong> Ez az eszköz szigorúan szemléltető és edukációs célokat szolgál. Noha a modell a legújabb tudományos és iparági kutatásokra (pl. FlashAttention, MoE, Chain-of-Thought) támaszkodik, a zárt AI rendszerek miatt nem látunk be pontosan a "motorháztető alá". A kalkulátor determinisztikus heurisztikák alapján becsüli meg az AI lekérdezések valós ökológiai terhét (áram- és vízfogyasztást), anélkül, hogy valós API hívásokat indítana.
@@ -1484,7 +1566,6 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          */
         const ECO_CONSTANTS = {
             // FIZIKAI ÉS EURÓPAI KONSTANSOK
-            WATER_MULTIPLIER: 3.1,      // Megtartjuk az alap szorzót fallbackként
             PHONE_CHARGE_WH: 22.5,
             LED_WATT_HOURS: 10,
             WATER_PUMP_RATE: 1.0,
@@ -1505,11 +1586,11 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             
             MAX_PROMPT_LENGTH: 5000,
             
-            // Szöveg predikciós regexek előfordítva (A böngésző csak egyszer compile-olja őket, gyorsabb a futás)
-            REGEX_LONG_OUTPUT: /\b(write|essay|story|írj|esszé|történet)\b/i,
-            REGEX_CODE: /\b(code|script|kód|szkript)\b/i,
-            REGEX_SUMMARY: /\b(summarize|tldr|összefoglal|röviden)\b/i,
-            REGEX_QA: /\b(explain|how|why|what|magyarázd|hogyan|miért|mi)\b/i,
+            // Szöveg predikciós regexek előfordítva (Unicode-biztos szóhatárok magyar ékezetekhez is)
+            REGEX_LONG_OUTPUT: /(?:^|[^\p{L}])(write|essay|story|írj|esszé|történet)/iu,
+            REGEX_CODE: /(?:^|[^\p{L}])(code|script|kód|szkript)/iu,
+            REGEX_SUMMARY: /(?:^|[^\p{L}])(summarize|tldr|összefoglal|foglald össze|röviden)/iu,
+            REGEX_QA: /(?:^|[^\p{L}])(explain|how|why|what|magyarázd|hogyan|miért|mi(?![\p{L}]))/iu,
             REGEX_HIGH_REASONING: /számold|bizonyítsd|program|kódol|logika|matek|egyenlet|oldd meg/i,
             REGEX_MED_REASONING: /elemezd|összefoglal|esszé|érvelj|hasonlítsd|tervezz|levezetés|magyarázd/i
         };
@@ -1540,10 +1621,46 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         const qrCodeImage = new Image();
         qrCodeImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABaElEQVRIib2WMa6DMBBEF7lw6SP4JuRiKBBxMbiJj7AlBWL/jAF9IqVccJP4UYy9Hs9a5MfozUyDSpYX/nC2uLNOpNGeky19lLMbWLZZg62yYE/K2U2MunFWkRuZpNGk/db1ZKxflwaxDQ641NSRVR90aSxLizO6eMORHaODbjL9srUbg9Jsdcz6rvL+LBSb0qh9wZ2BsrF+TzC6gbfV4obDC6Vu3plxwH1Wak37ul9vFljOEZmzNPrGd5v82aG8npnJ+nmz6g3oStyksTVT15sJA426nMB/0vqzLi+vmmuX+rkzQRCsac3SJh5XrLnmzKgbFFfHbEA147kWV4bDCZjGCbmGttk+xIQN2gZe2Q/3u/dpV7YHqO6foGs3sKMvDDkiDdjfJnFntb/J3nuoy2W4M/Zp9Dd6vGH9tptYzzdNY/CB/L9BnBn7NPJ54E26rMWN1fcf/IzwP37c2e4DOTMnx+kZ9mP8Ac9OkiYKKBY8AAAAAElFTkSuQmCC';
 
+        const isEmbedded = document.documentElement.classList.contains('is-embedded');
+        let noticeTimer = null;
+
+        /**
+         * Inline értesítősáv megjelenítése (cross-origin iframe-ben tiltott window.alert() helyett).
+         * @param {string} message - A megjelenítendő szöveg.
+         * @param {'info'|'warn'|'error'} [type='info'] - Értesítés típusa.
+         */
+        function showNotice(message, type = 'info') {
+            const noticeEl = document.getElementById('statusNotice');
+            if (!noticeEl) return;
+            noticeEl.textContent = message;
+            noticeEl.dataset.type = type;
+            noticeEl.hidden = false;
+            clearTimeout(noticeTimer);
+            noticeTimer = setTimeout(() => {
+                noticeEl.hidden = true;
+            }, 5000);
+        }
+
+        /**
+         * Gomb feliratának és ikonjának biztonságos frissítése innerHTML nélkül.
+         * @param {HTMLButtonElement|null} btn - Cél gomb elem.
+         * @param {string} label - Új gombcímke.
+         * @param {boolean} [showIcon=true] - Látszódjon-e a belső SVG ikon.
+         */
+        function setBtnState(btn, label, showIcon = true) {
+            if (!btn) return;
+            const svg = btn.querySelector('svg');
+            const labelEl = btn.querySelector('.btn-label');
+            if (svg) svg.hidden = !showIcon;
+            if (labelEl) labelEl.textContent = label;
+            else btn.textContent = label;
+        }
+
         function resetExportState() {
             // MEMÓRIA TAKARÍTÁS: Az előző számítás során létrehozott Blob URL-ek felszabadítása
             activeBlobUrls.forEach(url => URL.revokeObjectURL(url));
             activeBlobUrls.clear();
+            lastDownloadUrl = null;
 
             preRenderedExportFile = null;
             isGeneratingGif = false;
@@ -1552,7 +1669,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const copyBtn = document.getElementById('copyBtn');
             const downloadBtn = document.getElementById('downloadBtn');
             if (shareBtn) {
-                shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Megosztás`;
+                setBtnState(shareBtn, 'Megosztás', true);
                 shareBtn.style.backgroundColor = '';
                 shareBtn.style.color = '';
                 shareBtn.style.borderColor = '';
@@ -1560,25 +1677,25 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             }
 
             if (downloadBtn) {
+                setBtnState(downloadBtn, 'Mentés', true);
                 downloadBtn.disabled = false;
             }
 
             if (copyBtn) {
                 const activeToggle = document.querySelector('.toggle-btn.active');
                 const format = activeToggle ? activeToggle.getAttribute('data-format') : 'png';
-                const exportActionsContainer = copyBtn.closest('.export-actions');
 
                 if (format === 'gif') {
                     copyBtn.style.display = 'inline-flex';
                     copyBtn.disabled = true;
-                    copyBtn.textContent = '⏳ Indítás...';
+                    setBtnState(copyBtn, '⏳ Indítás...', false);
                     copyBtn.style.opacity = '1';
                     copyBtn.style.cursor = 'wait';
                     copyBtn.title = "A GIF készül a háttérben. Másolás GIF esetén nem elérhető.";
                 } else {
                     copyBtn.style.display = 'inline-flex';
                     copyBtn.disabled = false;
-                    copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Másolás`;
+                    setBtnState(copyBtn, 'Másolás', true);
                     copyBtn.style.opacity = '';
                     copyBtn.style.cursor = '';
                     copyBtn.title = "";
@@ -1603,7 +1720,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             { model: "medium", media: "none", context: "pdf_small", prompt: "Elemezd ezt a 15 oldalas társasházi közgyűlési jegyzőkönyvet, és emeld ki, melyik szomszéd tűnik a legvalószínűbb sorozatgyilkosnak a panaszai alapján." },
             { model: "medium", media: "none", context: "pdf_small", prompt: "Olvasd el ezt a mosógép használati utasítást, és írj belőle egy görög drámát, ahol a félpár zoknik elvesztése az istenek büntetése." },
             { model: "medium", media: "podcast", context: "article", prompt: "Készíts egy true crime stílusú podcast epizódot ebből a hírblokkból arról, hogy valaki ellopta a munkahelyi hűtőből a felcímkézett joghurtomat." },
-            { model: "medium", media: "podcast", context: "article", prompt: "Alakítsd ezt a unalmas heti IT státuszjelentést egy izgalmas, sportközvetítés-jellegű podcasttá, ahol a határidők elleni küzdelem a fő meccs." },
+            { model: "medium", media: "podcast", context: "article", prompt: "Alakítsd ezt az unalmas heti IT státuszjelentést egy izgalmas, sportközvetítés-jellegű podcasttá, ahol a határidők elleni küzdelem a fő meccs." },
             { model: "medium", media: "podcast", context: "article", prompt: "Ebből a Wikipédia cikkből a kacsákról csinálj egy drámai, kétszemélyes podcastot, ahol az egyik műsorvezető retteg tőlük." },
         
             // --- THINKING MODELLEK (18 db) ---
@@ -1631,7 +1748,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // --- EREDETI MODELLEK (10 db) ---
             { model: "light", media: "none", context: "none", prompt: "Hogyan kell szakszerűen eltávolítani egy beszáradt vörösborfoltot a fehér ingemről?" },
             { model: "medium", media: "none", context: "pdf_small", prompt: "Foglald össze nekem 5 vázlatpontban ennek a makroökonómia tanulmánynak a lényegét, holnap reggel felelek!" },
-            { model: "thinking", media: "none", context: "book", prompt: "Magyarázd el részletesen, hol van a memóriaszivárgás ebben a teljes kód bázisban, és hogyan lehetne refaktorálni." },
+            { model: "thinking", media: "none", context: "book", prompt: "Magyarázd el részletesen, hol van a memóriaszivárgás ebben a teljes kódbázisban, és hogyan lehetne refaktorálni." },
             { model: "light", media: "video", context: "none", prompt: "Készíts egy 5 másodperces lassított klipet egy esőben sétáló, neonfényben úszó szomorú robotról." },
             { model: "thinking", media: "image", context: "none", prompt: "Tervezz egy matematikai pontosságú illusztrációt a Fibonacci-spirál geometriájáról, és generálj hozzá vektoros képet." },
             { model: "medium", media: "podcast", context: "article", prompt: "Csinálj ebből a gazdasági elemzésből egy pörgős, kétszemélyes reggeli podcast-beszélgetést, amíg vezetek." },
@@ -1838,14 +1955,17 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         /**
          * MAGYAR LOKALIZÁCIÓS SZÁMFORMÁZÓ (Tizedesvesszők és ezres tagolók, pl: "1 234,50")
          * 
-         * Formázza a nyers számokat magyar szabvány szerinti elválasztókkal.
-         * UI/UX trükk: Ha a szám abszolút értéke >= 100, dinamikusan levágja a tizedeseket, 
-         * hogy a hosszú számok is vizuálisan kényelmesen beférjenek a metrikakártya kis dobozába.
+         * Formázza a nyers számokat magyar szabvány szerinti elválasztókkal:
+         * - 0 vagy nem véges érték esetén `'0'`
+         * - `0 < num < 0.01` esetén `'< 0,01'` (elkerülve a megtévesztő `'0,00'` kijelzést)
+         * - `>= 100` abszolút értéknél kerekítve vágja a tizedeseket a kártyák olvashatóságáért.
          * 
          * @param {number} num - A formázandó nyers lebegőpontos szám.
-         * @returns {string} Formázott string, pl: "1 234" vagy "4,50".
+         * @returns {string} Formázott string, pl: "1 234", "4,50" vagy "< 0,01".
          */
         function formatHu(num) {
+            if (!Number.isFinite(num) || num <= 0) return '0';
+            if (num < 0.01) return '< 0,01';
             const isInteger = num % 1 === 0;
             const decimals = Math.abs(num) >= 100 ? 0 : 2;
             return num.toLocaleString('hu-HU', {
@@ -1881,45 +2001,66 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
         const exportSection = document.getElementById('exportSection');
 
-        // Téma kezelő (Sötét / Világos mód)
+        // Téma kezelő (Sötét / Világos mód) — beágyazva fixen világos, storage-hiba ellen védve
         const themeToggleBtn = document.getElementById('themeToggle');
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        /** Biztonságos localStorage olvasás (cross-origin iframe-ben tiltott storage esetén sem dob hibát). */
+        function readStoredTheme() {
+            if (isEmbedded) return null;
+            try { return localStorage.getItem('theme'); } catch (e) { return null; }
+        }
+
+        /** Biztonságos localStorage írás (csak önálló módban). */
+        function saveStoredTheme(theme) {
+            if (isEmbedded) return;
+            try { localStorage.setItem('theme', theme); } catch (e) {}
+        }
 
         function applyTheme(theme) {
             calculatorApp.setAttribute('data-theme', theme);
             // Csak lokális (nem CMS beágyazott) módban hatunk a globális dokumentumra, hogy a háttér is sötétedjen
-            if (document.body.classList.contains('eco-calc-standalone')) {
+            if (!isEmbedded && document.body.classList.contains('eco-calc-standalone')) {
                 document.documentElement.setAttribute('data-theme', theme);
             }
         }
 
-        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            applyTheme('dark');
-        } else {
+        if (isEmbedded) {
             applyTheme('light');
+        } else {
+            const savedTheme = readStoredTheme();
+            const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(savedTheme === 'dark' || (!savedTheme && systemPrefersDark) ? 'dark' : 'light');
         }
 
-        // Dinamikus témafigyelő az OS szintű változásokhoz
-        if (window.matchMedia) {
+        // Dinamikus témafigyelő az OS szintű változásokhoz (csak önálló módban)
+        if (!isEmbedded && window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                if (!localStorage.getItem('theme')) {
+                if (!readStoredTheme()) {
                     applyTheme(e.matches ? 'dark' : 'light');
                 }
             });
         }
 
         themeToggleBtn.addEventListener('click', () => {
+            if (isEmbedded) return;
             let currentTheme = calculatorApp.getAttribute('data-theme');
             let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme);
+            saveStoredTheme(newTheme);
         });
 
 
 
-        let hasEditedPrompt = false;
         let defaultPrompt = "";
+
+        // A prompt mező automatikus nyújtása a szöveg soraihoz (max. 360px, utána belső görgetés)
+        function autoResizePrompt() {
+            aiPrompt.style.height = 'auto';
+            const maxH = 360;
+            const nextH = Math.min(aiPrompt.scrollHeight, maxH);
+            aiPrompt.style.height = `${Math.max(90, nextH)}px`;
+            aiPrompt.style.overflowY = aiPrompt.scrollHeight > maxH ? 'auto' : 'hidden';
+        }
 
         // Média kiválasztás logika: A lenyíló HTML5 details panel okos bezárása kattintás után,
         // JAVÍTÁS 4: 'change' helyett 'click' eseményt figyelünk. Így ha a felhasználó
@@ -1981,6 +2122,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 contextSummaryIcon.textContent = '📄';
                 // JAVÍTÁS 5: Itt is frissített szöveg a fókuszáláskori törlésnél
                 contextSummaryText.textContent = 'Bemenet: Nincs csatolt anyag';
+                autoResizePrompt();
             }
         });
 
@@ -2007,16 +2149,19 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
             charCountDisplay.textContent = aiPrompt.value.length;
             charCountDisplay.style.color = '';
+            autoResizePrompt();
         }
 
-        // Azonnali végrehajtás betöltéskor
+        // Azonnali végrehajtás betöltéskor + ablakátméretezéshez igazítás
         initRandomScenario();
+        window.addEventListener('resize', autoResizePrompt);
         // Dobókocka esemény
         randomBtn.addEventListener('click', initRandomScenario);
 
         // BIZTONSÁGOS AUTO-SCROLL FUNKCIÓ (Mobil "yo-yo" ugrálás megelőzésére)
-        // Csak lefelé, abszolút pixelpozícióba görget, elkerülve az elem-szintű fókuszugrálást.
+        // Csak önálló módban görget; iframe-ben a szülőoldal egyszeri görgetését használjuk.
         function smoothScrollDown() {
+            if (isEmbedded) return;
             const targetY = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
             window.scrollTo({ top: targetY, behavior: 'smooth' });
         }
@@ -2032,7 +2177,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             }
         }
 
-        // Karakter számláló frissítése
+        // Karakter számláló frissítése és automatikus magasságállítás
         aiPrompt.addEventListener('input', () => {
             const len = aiPrompt.value.length;
             charCountDisplay.textContent = len;
@@ -2042,8 +2187,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             } else {
                 charCountDisplay.style.color = '';
             }
-
-            if (!hasEditedPrompt) hasEditedPrompt = true;
+            autoResizePrompt();
         });
 
         // BIZTONSÁGI (DoS) VÉDELEM: Túl hosszú beillesztés figyelmeztetése
@@ -2052,13 +2196,16 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // Ez a kliens oldali regex elemzéseket és a Canvas tördelést is lefagyaszthatná.
         // Itt detektáljuk, ha a limitet átlépi, és udvariasan szólunk a felhasználónak a csonkolásról.
         aiPrompt.addEventListener('paste', (e) => {
-            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const pasteData = (e.clipboardData || window.clipboardData)?.getData('text') || '';
             const currentLen = aiPrompt.value.length;
-            if (currentLen + pasteData.length > ECO_CONSTANTS.MAX_PROMPT_LENGTH) {
-                setTimeout(() => {
-                    alert('Figyelem: A beillesztett szöveg meghaladta az 5000 karakteres limitet, ezért csonkolva lett!');
-                }, 10);
-            }
+            const selLen = (aiPrompt.selectionEnd || 0) - (aiPrompt.selectionStart || 0);
+            const willTruncate = (currentLen - selLen + pasteData.length) > ECO_CONSTANTS.MAX_PROMPT_LENGTH;
+            setTimeout(() => {
+                autoResizePrompt();
+                if (willTruncate) {
+                    showNotice('Figyelem: A beillesztett szöveg meghaladta az 5000 karakteres limitet, ezért csonkolva lett.', 'warn');
+                }
+            }, 10);
         });
 
         // Enter billentyű figyelése (kivéve Shift+Enter) a számítás gyors indításához
@@ -2071,8 +2218,12 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // majd egy látványos aszinkron (await) animációs sorozatban jeleníti meg azokat.
         calcBtn.addEventListener('click', async () => {
             if (calcBtn.disabled || isGeneratingGif) return;
-            const text = aiPrompt.value;
-            if (text.length === 0) return;
+            const text = aiPrompt.value.trim();
+            if (text.length === 0) {
+                showNotice('Kérlek, írj be egy promptot a számításhoz!', 'warn');
+                aiPrompt.focus();
+                return;
+            }
 
             hasCalculated = true; // Számítás megtörtént, zároljuk az input fókusz-törlést
 
@@ -2095,6 +2246,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
             // UI elemek lezárása az animáció idejére (ne tudjon belekattintani közben)
             calcBtn.disabled = true;
+            setBtnState(calcBtn, 'Számítás...', false);
             randomBtn.disabled = true;
 
             // JAVÍTÁS 1: A prompt beviteli mező és a wrapper stílusos zárolása animáció alatt
@@ -2158,11 +2310,22 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const thinkContent = document.getElementById('thinkContent');
             thinkingState.style.display = 'none';
             thinkingState.classList.remove('pop-in');
-            thinkContent.innerHTML = '';
+            thinkContent.textContent = '';
 
             // Megjelenítjük a konténert (még üresen)
             resultsSection.style.display = 'block';
             smoothScrollDown(); // Biztonságos görgetés a kezdetekkor
+
+            let didRequestResultsScroll = false;
+            function triggerEmbeddedResultsScrollOnce() {
+                if (didRequestResultsScroll || !isEmbedded) return;
+                didRequestResultsScroll = true;
+                postEmbedHeight(true);
+                requestAnimationFrame(() => {
+                    postEmbedHeight(true);
+                    requestParentScrollToResults();
+                });
+            }
 
             // Dinamikus animációs sebesség a kiválasztott modelltől függően
             let minSpeed = 5; let maxSpeed = 15;
@@ -2175,6 +2338,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             if (showThinkingState) {
                 thinkingState.style.display = 'block';
                 thinkingState.classList.add('pop-in');
+                triggerEmbeddedResultsScrollOnce();
 
                 const thoughtLines = [];
 
@@ -2225,6 +2389,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     if (parentBox && parentBox.style.display === 'none') {
                         parentBox.style.display = '';
                         parentBox.classList.add('pop-in');
+                        triggerEmbeddedResultsScrollOnce();
 
                         smoothScrollDown(); // Új doboz megjelenésekor lejjebb tolás
 
@@ -2236,6 +2401,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
             // Visszaengedjük a UI vezérlőket a felhasználónak
             calcBtn.disabled = false;
+            setBtnState(calcBtn, 'Számítás', true);
             randomBtn.disabled = false;
 
             // JAVÍTÁS 1: A prompt mező interaktivitásának pontos visszaállítása
@@ -2259,9 +2425,6 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             }, 100);
         });
 
-        // Indításkor azonnal kiszámoljuk a karaktereket
-        charCountDisplay.textContent = aiPrompt.value.length;
-
         // ==========================================================================
         // EXPORT GOMBOK, FORMÁTUM KAPCSOLÓ ÉS HÁTTÉR-GENERÁLÁS
         // ==========================================================================
@@ -2274,13 +2437,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
         // Formátum Választó (Kép vs GIF) Toggle logika a frontend gombokhoz
         formatBtns.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', async () => {
                 // Ne csináljon semmit, ha már ez az aktív, vagy ha épp generál
-                if (e.target.classList.contains('active') || isGeneratingGif) return;
+                if (btn.classList.contains('active') || isGeneratingGif) return;
 
                 formatBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentExportFormat = e.target.getAttribute('data-format');
+                btn.classList.add('active');
+                currentExportFormat = btn.getAttribute('data-format');
 
                 resetExportState();
 
@@ -2296,7 +2459,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
                     if (copyBtn) {
                         copyBtn.disabled = true;
-                        copyBtn.textContent = '⏳ 0%';
+                        setBtnState(copyBtn, '⏳ 0%', false);
                         copyBtn.style.color = 'var(--brand-orange)';
                         copyBtn.style.borderColor = 'var(--brand-orange)';
                     }
@@ -2308,7 +2471,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
 
                     try {
                         const blob = await generateGifBlob((p) => {
-                            if (copyBtn) copyBtn.textContent = `⏳ ${Math.round(p * 100)}%`;
+                            if (copyBtn) setBtnState(copyBtn, `⏳ ${Math.round(p * 100)}%`, false);
                         });
 
                         preRenderedExportFile = new File([blob], 'aikhk-ai-hatas.gif', { type: 'image/gif' });
@@ -2316,12 +2479,12 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         if (copyBtn) {
                             copyBtn.style.color = '#2e7d32'; // Sötétzöld siker üzenet
                             copyBtn.style.borderColor = '#2e7d32';
-                            copyBtn.textContent = '✅ Kész!';
+                            setBtnState(copyBtn, '✅ Kész!', false);
                             copyBtn.title = "A GIF sikeresen legenerálva. Használd a letöltést vagy megosztást!";
                             copyBtn.style.cursor = 'default';
                         }
 
-                        // Gombok újra engedélyezése
+                        // Gombok újra engedélyezése csak sikeres GIF esetén
                         downloadBtn.disabled = false;
                         shareBtn.disabled = false;
                     } catch (error) {
@@ -2329,10 +2492,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         if (copyBtn) {
                             copyBtn.style.color = '#D13E0E'; // Piros hiba üzenet
                             copyBtn.style.borderColor = '#D13E0E';
-                            copyBtn.textContent = '❌ Hiba';
+                            setBtnState(copyBtn, '❌ Hiba', false);
                         }
-                        downloadBtn.disabled = false;
-                        shareBtn.disabled = false;
+                        showNotice('A GIF generálása sikertelen volt. Próbáld meg Kép (PNG) formátumban!', 'error');
                     } finally {
                         isGeneratingGif = false;
                     }
@@ -2371,16 +2533,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 for (let i = 0; i < words.length; i++) {
                     let word = words[i];
                     if (word === "") continue;
-                    // JAVÍTÁS (Teljesítmény): Bináris keresés az O(N) lineáris léptetés helyett.
-                    // Extrém hosszú (szóköz nélküli) szavaknál a measureText karakterenkénti 
-                    // meghívása blokkolná a UI szálat (Layout Thrashing). 
-                    // A bináris keresés O(log N) lépésben (pl. 10 000 karakter esetén mindössze ~14 lépésből)
-                    // megtalálja az ideális sortörés (c) helyét a Canvas rajzoláshoz.
+                    // Emoji-biztos (kódponthű) bináris keresés szóköz nélküli extrém hosszú szavakhoz
                     while (word.length > 0 && ctx.measureText(word).width > maxWidth) {
-                        let low = 1, high = word.length, c = 1;
+                        const chars = Array.from(word);
+                        let low = 1, high = chars.length, c = 1;
                         while (low <= high) {
-                            let mid = Math.floor((low + high) / 2);
-                            if (ctx.measureText(word.substring(0, mid)).width <= maxWidth) {
+                            const mid = Math.floor((low + high) / 2);
+                            if (ctx.measureText(chars.slice(0, mid).join('')).width <= maxWidth) {
                                 c = mid;
                                 low = mid + 1;
                             } else {
@@ -2391,8 +2550,8 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                             lines.push(currentLine);
                             currentLine = "";
                         }
-                        lines.push(word.substring(0, c));
-                        word = word.substring(c);
+                        lines.push(chars.slice(0, c).join(''));
+                        word = chars.slice(c).join('');
                     }
                     if (word === "") continue;
                     if (currentLine === "") {
@@ -2427,6 +2586,21 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
          * 
          * @returns {Object|null} A teljes rajzolási adatcsomag metaadatokkal (vagy null, ha nincs mit renderelni).
          */
+        /**
+         * Canvas betűméret automatikus igazítása a megadott maximális pixelszélességhez.
+         * @returns {string} A végleges `ctx.font` definíció.
+         */
+        function fitFontSize(ctx, text, maxWidth, weight, startPx, minPx, family = 'Arial, sans-serif') {
+            let size = startPx;
+            while (size > minPx) {
+                ctx.font = `${weight} ${size}px ${family}`;
+                if (ctx.measureText(text).width <= maxWidth) break;
+                size -= 1;
+            }
+            ctx.font = `${weight} ${size}px ${family}`;
+            return ctx.font;
+        }
+
         function getInfographicData() {
             if (!lastCalculatedState) return null; // Biztonsági őr, ha nem futott még le számítás
 
@@ -2451,25 +2625,33 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             const ctx = canvas.getContext('2d');
             const width = 1080; // A generált kép / canvas fix szélessége (FullHD álló tájoláshoz optimalizálva)
 
+            // Csak a vizuális infografika-kártyához normalizáljuk az üres sorokat és max. 10 sorra korlátozzuk
+            const MAX_CANVAS_PROMPT_LINES = 10;
+            const MAX_PROMPT_DRAW_WIDTH = 740;
+            const displayPrompt = promptText.trim().replace(/\n{3,}/g, '\n\n');
             ctx.font = 'italic 30px Arial, sans-serif';
-            const wrappedPromptLines = getCanvasLines(ctx, promptText, 780);
-            // Dinamikus magasság számítása: minél hosszabb a szöveg, annál magasabb lesz a végleges kép
+            let wrappedPromptLines = getCanvasLines(ctx, displayPrompt, MAX_PROMPT_DRAW_WIDTH);
+            if (wrappedPromptLines.length > MAX_CANVAS_PROMPT_LINES) {
+                wrappedPromptLines = wrappedPromptLines.slice(0, MAX_CANVAS_PROMPT_LINES);
+                const lastChars = Array.from(wrappedPromptLines[MAX_CANVAS_PROMPT_LINES - 1]);
+                while (lastChars.length > 0 && ctx.measureText(lastChars.join('') + '…').width > MAX_PROMPT_DRAW_WIDTH) {
+                    lastChars.pop();
+                }
+                wrappedPromptLines[MAX_CANVAS_PROMPT_LINES - 1] = lastChars.join('') + '…';
+            }
+            const wrappedLineChars = wrappedPromptLines.map(line => Array.from(line));
+            const totalRenderChars = wrappedLineChars.reduce((sum, chars) => sum + chars.length, 0);
+
+            // Dinamikus magasság számítása (biztonságos max 10 sorral <= 1700px vászonmagasság)
             const promptBoxHeight = Math.max(140, wrappedPromptLines.length * 42 + 80);
-            // Megnövelt vászonmagasság, hogy a QR kódnak és a szövegeknek legyen elegáns térközük
             const height = promptBoxHeight + 1200;
 
-            ctx.font = '700 18px Arial, sans-serif';
-            let infoTextWidth = ctx.measureText(infoText).width;
-            let infoTextFont = '700 18px Arial, sans-serif';
-            if (infoTextWidth > 800) {
-                infoTextFont = '700 15px Arial, sans-serif';
-                ctx.font = infoTextFont;
-                infoTextWidth = ctx.measureText(infoText).width;
-            }
+            const infoTextFont = fitFontSize(ctx, infoText, 820, '700', 18, 11);
+            const infoTextWidth = ctx.measureText(infoText).width;
 
             return {
                 promptText, outTokens, totEnergyStr: totEnergyStr + " " + totEnergyUnit, totEnergyRaw, totEnergyUnit, infoText, metrics,
-                width, height, promptBoxHeight, wrappedPromptLines, infoTextWidth, infoTextFont
+                width, height, promptBoxHeight, wrappedPromptLines, wrappedLineChars, totalRenderChars, infoTextWidth, infoTextFont
             };
         }
 
@@ -2494,7 +2676,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         function renderInfographicFrame(ctx, data, t) {
             if (!data) return; // Ha valamiért nincs adat, biztonsági kilépés
 
-            const { width, height, promptBoxHeight, wrappedPromptLines, promptText, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics, infoTextWidth, infoTextFont } = data;
+            const { width, height, promptBoxHeight, wrappedLineChars, totalRenderChars, infoText, totEnergyStr, totEnergyRaw, totEnergyUnit, metrics, infoTextWidth, infoTextFont } = data;
 
             // --- ALAP (0-tól végig): Sötét háttér, Fehér főkártya, Fejléc, Idézetdoboz és Lábléc ---
             ctx.fillStyle = '#1A1A1A'; // Vágókép/margó
@@ -2540,9 +2722,9 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // --- FÁZIS 1: Írógép effektus szimulálása a Canvasen (300ms - 1600ms) ---
             let charsToShow = 0;
             if (t >= 300 && t <= 1600) {
-                charsToShow = Math.floor(promptText.length * ((t - 300) / 1300));
+                charsToShow = Math.floor(totalRenderChars * ((t - 300) / 1300));
             } else if (t > 1600) {
-                charsToShow = promptText.length; // 1.6mp után az összes karakter kint van
+                charsToShow = totalRenderChars; // 1.6mp után az összes renderelt karakter kint van
             }
 
             if (charsToShow > 0) {
@@ -2550,14 +2732,13 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 ctx.font = 'italic 30px Arial, sans-serif';
                 ctx.textAlign = 'left';
                 let drawnChars = 0;
-                // Tördelés logikája
-                for (let i = 0; i < wrappedPromptLines.length; i++) {
-                    const line = wrappedPromptLines[i];
+                for (let i = 0; i < wrappedLineChars.length; i++) {
+                    const lineChars = wrappedLineChars[i];
                     const charsLeft = charsToShow - drawnChars;
                     if (charsLeft <= 0) break;
-                    const textToDraw = line.substring(0, charsLeft);
+                    const textToDraw = lineChars.slice(0, charsLeft).join('');
                     ctx.fillText(textToDraw, 190, promptY + 65 + (i * 42));
-                    drawnChars += line.length + 1;
+                    drawnChars += lineChars.length;
                 }
             }
 
@@ -2612,10 +2793,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 }
 
                 ctx.fillStyle = '#EA4C15';
-                ctx.font = '900 120px Arial, sans-serif';
-                if (ctx.measureText(displayEnergy).width > 850) {
-                    ctx.font = '900 95px Arial, sans-serif'; // Tördelésvédelem extrém magas Wh érték esetén
-                }
+                fitFontSize(ctx, displayEnergy, 850, '900', 120, 64);
                 ctx.fillText(displayEnergy, 95, currentY);
             } else {
                 currentY += 105;
@@ -2677,14 +2855,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     }
 
                     ctx.fillStyle = '#1A1A1A';
-                    ctx.font = '900 24px Arial, sans-serif';
-                    // Dinamikus betűméret-csökkentés túl hosszú számok (pl extrém nagy lekérdezések) esetén
-                    if (ctx.measureText(displayVal).width > 150) {
-                        ctx.font = '900 20px Arial, sans-serif';
-                    }
-                    if (ctx.measureText(displayVal).width > 165) {
-                        ctx.font = '900 17px Arial, sans-serif';
-                    }
+                    fitFontSize(ctx, displayVal, 158, '900', 24, 14);
                     ctx.fillText(displayVal, x + 100, y + 90);
 
                     ctx.globalAlpha = 1.0; // ALPHA SZIVÁRGÁS VÉDELEM
@@ -2696,7 +2867,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // statikus képet adják vissza. Ilyenkor a kép "kitartva", fagyasztott állapotban van a felhasználó számára.
 
             // --- QR KÓD ÉS CALL-TO-ACTION (Kártya stílusú doboz a Vízforralás alatt) ---
-            if (qrCodeImage.complete) {
+            if (qrCodeImage.complete && qrCodeImage.naturalWidth > 0) {
                 const boxW = 273;
                 const boxH = 130; // Pontosan akkora, mint egy metrika kártya
                 const boxX = 706; // 3. oszlop kezdete
@@ -2803,6 +2974,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             // viszont megakadályozzuk a memóriaszivárgást is (maximum 1 fájl marad a memóriában).
             if (lastDownloadUrl && lastDownloadUrl !== url && lastDownloadUrl.startsWith('blob:')) {
                 URL.revokeObjectURL(lastDownloadUrl);
+                activeBlobUrls.delete(lastDownloadUrl);
             }
             lastDownloadUrl = url;
             if (url.startsWith('blob:')) activeBlobUrls.add(url);
@@ -2842,7 +3014,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     // --- KÉPMÉRET ÉS ÉLESSÉG OPTIMALIZÁCIÓ (DOWNSCALING) ---
                     // Mobil eszközök memóriájának (RAM) védelme érdekében kisebb képernyőn 
                     // drasztikusabban skálázunk (0.5), míg asztali gépen marad a 0.8.
-                    const isMobile = window.innerWidth <= 600;
+                    const isMobile = window.matchMedia('(max-width: 599px)').matches;
                     const scaleFactor = isMobile ? 0.5 : 0.8;
                     const gifWidth = Math.floor(data.width * scaleFactor);
                     const gifHeight = Math.floor(data.height * scaleFactor);
@@ -2913,19 +3085,30 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         if (i % (isMobile ? 2 : 5) === 0) await yieldToBrowser();
                     }
 
+                    let settled = false;
+                    const cleanupWorkers = () => {
+                        if (gif.freeWorkers) gif.freeWorkers.forEach(w => w.terminate());
+                        if (gif.activeWorkers) gif.activeWorkers.forEach(w => w.terminate());
+                    };
+                    const timeoutId = setTimeout(() => {
+                        if (settled) return;
+                        settled = true;
+                        try { gif.abort(); } catch (e) {}
+                        cleanupWorkers();
+                        reject(new Error('GIF generálás időtúllépés'));
+                    }, 45000);
+
                     // Visszajelzés a gomb felületére százalékosan
                     gif.on('progress', function (p) {
-                        if (progressCallback) progressCallback(p);
+                        if (!settled && progressCallback) progressCallback(p);
                     });
 
                     gif.on('finished', function (blob) {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timeoutId);
                         // 💡 JAVÍTÁS: Kényszerített Worker takarítás a memóriaszivárgás ellen
-                        if (gif.freeWorkers) {
-                            gif.freeWorkers.forEach(worker => worker.terminate());
-                        }
-                        if (gif.activeWorkers) {
-                            gif.activeWorkers.forEach(worker => worker.terminate());
-                        }
+                        cleanupWorkers();
                         resolve(blob);
                     });
 
@@ -2940,7 +3123,6 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // EGYSÉGES MENTÉS GOMB LOGIKA (Figyeli a Kapcsolót: PNG vagy GIF lesz?)
         // ==========================================================================
         downloadBtn.addEventListener('click', async () => {
-            const originalContent = downloadBtn.innerHTML;
             downloadBtn.disabled = true; // Duplakattintás védelem
 
             try {
@@ -2948,26 +3130,26 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     // A PNG generálása a gombnyomás pillanatában történik (mivel gyors)
                     calculatorApp.style.pointerEvents = 'none';
                     calculatorApp.style.opacity = '0.7';
-                    downloadBtn.textContent = 'Készítés...';
+                    setBtnState(downloadBtn, 'Készítés...', false);
                     await sleep(50);
                     const canvas = createInfographicCanvas();
-                    if (canvas) {
-                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                        if (blob) {
-                            const objectUrl = URL.createObjectURL(blob);
-                            triggerDownload(objectUrl, 'aikhk-ai-hatas.png');
-                        }
-                    }
+                    if (!canvas) throw new Error("Canvas készítése sikertelen.");
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error("Hiba a kép generálásakor.");
+                    const objectUrl = URL.createObjectURL(blob);
+                    triggerDownload(objectUrl, 'aikhk-ai-hatas.png');
                 }
                 else if (currentExportFormat === 'gif' && preRenderedExportFile) {
                     // A GIF már le van legenerálva a háttérben, azonnali letöltés!
                     triggerDownload(URL.createObjectURL(preRenderedExportFile), preRenderedExportFile.name);
+                } else {
+                    throw new Error("Nincs elérhető export fájl.");
                 }
             } catch (error) {
                 console.error('Hiba a mentés során:', error);
-                alert('Sajnos hiba történt a mentéskor.');
+                showNotice('Sajnos hiba történt a mentéskor.', 'error');
             } finally {
-                downloadBtn.innerHTML = originalContent;
+                setBtnState(downloadBtn, 'Mentés', true);
                 downloadBtn.disabled = false;
                 calculatorApp.style.pointerEvents = '';
                 calculatorApp.style.opacity = '';
@@ -2978,7 +3160,6 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // DINAMIKUS MEGOSZTÁS GOMB LOGIKA (Web Share API Safari Timeout Javítással)
         // ==========================================================================
         shareBtn.addEventListener('click', async () => {
-            const originalContent = shareBtn.innerHTML;
             shareBtn.disabled = true;
             let shareFile = null;
 
@@ -2986,11 +3167,12 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 if (currentExportFormat === 'png') {
                     calculatorApp.style.pointerEvents = 'none';
                     calculatorApp.style.opacity = '0.7';
-                    shareBtn.textContent = 'Előkészítés...';
+                    setBtnState(shareBtn, 'Előkészítés...', false);
                     await sleep(50);
                     const canvas = createInfographicCanvas();
                     if (!canvas) throw new Error("Canvas készítése sikertelen.");
                     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error("Hiba a kép generálásakor.");
                     shareFile = new File([blob], 'aikhk-ai-hatas.png', { type: 'image/png' });
                 }
                 else if (currentExportFormat === 'gif' && preRenderedExportFile) {
@@ -3009,20 +3191,20 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                         files: [shareFile]
                     });
                 } else {
-                    alert('A böngésződ nem támogatja a közvetlen megosztást. A fájlt automatikusan letöltjük!');
+                    showNotice('A böngésződ nem támogatja a közvetlen megosztást — a fájlt automatikusan letöltöttük.', 'info');
                     triggerDownload(URL.createObjectURL(shareFile), shareFile.name);
                 }
 
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Megosztás Hiba:', error);
-                    alert('A mobil böngésző korlátozása miatt a közvetlen megosztás megszakadt. A fájlt biztonsági okokból letöltjük!');
+                    showNotice('A böngésző korlátozása miatt a közvetlen megosztás nem érhető el — a fájlt letöltöttük.', 'warn');
                     if (shareFile) {
                         triggerDownload(URL.createObjectURL(shareFile), shareFile.name);
                     }
                 }
             } finally {
-                shareBtn.innerHTML = originalContent;
+                setBtnState(shareBtn, 'Megosztás', true);
                 shareBtn.disabled = false;
                 calculatorApp.style.pointerEvents = '';
                 calculatorApp.style.opacity = '';
@@ -3034,19 +3216,18 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // ==========================================================================
         if (copyBtn) {
             copyBtn.addEventListener('click', async () => {
-                const originalContent = copyBtn.innerHTML;
                 copyBtn.disabled = true;
 
                 try {
                     if (!navigator.clipboard || !navigator.clipboard.write) {
-                        alert('A böngésződ nem támogatja a közvetlen vágólapra másolást. Próbáld meg a letöltést!');
+                        showNotice('A böngésződ nem támogatja a közvetlen vágólapra másolást. Használd a Mentés gombot!', 'warn');
                         return;
                     }
 
                     if (currentExportFormat === 'png') {
                         calculatorApp.style.pointerEvents = 'none';
                         calculatorApp.style.opacity = '0.7';
-                        copyBtn.textContent = 'Másolás...';
+                        setBtnState(copyBtn, 'Másolás...', false);
 
                         // Safari (iOS) igénye: a vágólap API hívásnak szinkron módon kell kezdődnie
                         // a kattintás eseményen belül. Ezért a Promise-t adjuk át a ClipboardItem-nek.
@@ -3076,7 +3257,7 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                     }
 
                     // Siker visszajelzés
-                    copyBtn.textContent = '✔ Másolva';
+                    setBtnState(copyBtn, '✔ Másolva', false);
                     copyBtn.style.backgroundColor = '#2e7d32'; // Zöld
                     copyBtn.style.color = 'white';
                     copyBtn.style.borderColor = '#2e7d32';
@@ -3085,12 +3266,12 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
                 } catch (error) {
                     console.error('Másolás Hiba:', error);
                     if (currentExportFormat === 'gif') {
-                        alert('A böngésződ nem támogatja a mozgóképek (GIF) közvetlen vágólapra másolását. Kérlek, használd a Letöltés vagy Megosztás gombot!');
+                        showNotice('A böngésződ nem támogatja a GIF közvetlen vágólapra másolását. Használd a Mentés vagy Megosztás gombot!', 'warn');
                     } else {
-                        alert('A vágólapra másolás sikertelen (lehet, hogy a böngésződ blokkolja ezt a funkciót). Használd a letöltést!');
+                        showNotice('A vágólapra másolás sikertelen (a böngésző vagy beágyazási környezet tilthatja). Használd a Mentés gombot!', 'warn');
                     }
                 } finally {
-                    copyBtn.innerHTML = originalContent;
+                    setBtnState(copyBtn, 'Másolás', true);
                     copyBtn.style.backgroundColor = '';
                     copyBtn.style.color = '';
                     copyBtn.style.borderColor = '';
@@ -3104,29 +3285,25 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
         // ==========================================================================
         // 5. MOBIL ÉRINTÉSKEZELÉS ÉS EXKLUZÍV TOOLTIP LOGIKA
         // Megakadályozza a kilógást, és garantálja, hogy egyszerre csak egy tooltip
-        // lehessen aktív (akár egeres hover, akár mobilos érintés történik).
-        // A téglalapok maguk nem kattinthatók, csak az (i) ikonok reagálnak.
+        // lehessen aktív (Pointer Events: egéren hover, mobilon érintéses toggle).
         // ==========================================================================
 
         function checkTooltipBounds(badge) {
+            badge.style.setProperty('--tt-shift', '0px');
             const rect = badge.getBoundingClientRect();
-            // A teljes widget szegélyeit vesszük figyelembe referenciapontként
-            const container = document.getElementById('calculatorApp').getBoundingClientRect();
+            const container = calculatorApp.getBoundingClientRect();
 
-            const tooltipMaxWidth = 210;
-            const halfWidth = tooltipMaxWidth / 2;
+            const tooltipWidth = Math.min(210, container.width - 20);
+            const halfWidth = tooltipWidth / 2;
             const badgeCenter = rect.left + (rect.width / 2);
 
-            // Ha a tooltip jobbra kilógna az ablakból, balra toljuk a CSS változón (var(--tt-x)) keresztül
+            let shift = 0;
             if (badgeCenter + halfWidth > container.right - 10) {
-                badge.style.setProperty('--tt-x', '-85%');
-                // Ha balra lógna ki, jobbra toljuk a belsejét
+                shift = (container.right - 10) - (badgeCenter + halfWidth);
             } else if (badgeCenter - halfWidth < container.left + 10) {
-                badge.style.setProperty('--tt-x', '-15%');
-                // Kényelmesen elfér középen -> visszaáll az alapértelmezett, szimmetrikus állásra
-            } else {
-                badge.style.setProperty('--tt-x', '-50%');
+                shift = (container.left + 10) - (badgeCenter - halfWidth);
             }
+            badge.style.setProperty('--tt-shift', `${Math.round(shift)}px`);
         }
 
         const allBadges = document.querySelectorAll('.info-badge');
@@ -3146,19 +3323,33 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             checkTooltipBounds(badge);
         }
 
-        // Eseménykezelők hozzárendelése minden egyes (i) ikonhoz
+        // Eseménykezelők hozzárendelése minden egyes (i) ikonhoz (Pointer Events + billentyűzet)
         allBadges.forEach(badge => {
-            // Asztali: Ha az egeret ráhúzza az ikonra, megnyílik
-            badge.addEventListener('mouseenter', () => openTooltip(badge));
+            badge.addEventListener('pointerenter', (e) => {
+                if (e.pointerType === 'mouse') openTooltip(badge);
+            });
 
-            // Asztali: Ha lehúzza róla az egeret, bezáródik
-            badge.addEventListener('mouseleave', () => closeAllTooltips());
+            badge.addEventListener('pointerleave', (e) => {
+                if (e.pointerType === 'mouse') closeAllTooltips();
+            });
 
-            // Mobil/Kattintás: Ha rábök az ikonra
             badge.addEventListener('click', (e) => {
-                e.stopPropagation(); // Megakadályozza, hogy a globális click azonnal bezárja
-                // Mobilon a hover nem létezik igazán, a click fogja kinyitni
-                openTooltip(badge);
+                e.stopPropagation();
+                if (badge.classList.contains('active-tip')) {
+                    closeAllTooltips();
+                } else {
+                    openTooltip(badge);
+                }
+            });
+
+            badge.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (badge.classList.contains('active-tip')) closeAllTooltips();
+                    else openTooltip(badge);
+                } else if (e.key === 'Escape') {
+                    closeAllTooltips();
+                }
             });
         });
 
@@ -3170,13 +3361,50 @@ RECENT ARCHITECTURAL UPDATES (v2.0):
             }
         });
 
+        // ==========================================================================
+        // 6. BEÁGYAZOTT (IFRAME) AUTO-RESIZE ÉS EGYSZERI SZÜLŐ-GÖRGETÉS PROTOKOLL
+        // ==========================================================================
+        let lastPostedHeight = 0;
+
+        /** Elküldi a widget tényleges magasságát a befogadó oldalnak (csak beágyazott módban). */
+        function postEmbedHeight(force = false) {
+            if (!isEmbedded) return;
+            if (!window.parent || window.parent === window) return;
+            const h = Math.ceil(calculatorApp.getBoundingClientRect().height);
+            if (!h || (!force && h === lastPostedHeight)) return;
+            lastPostedHeight = h;
+            window.parent.postMessage({ type: 'eco-calc-resize', height: h }, '*');
+        }
+
+        /** Egyszeri finom görgetést kér a szülőoldaltól az eredményblokk tetejéhez. */
+        function requestParentScrollToResults() {
+            if (!isEmbedded || !window.parent || window.parent === window) return;
+            const offsetTop = Math.max(0, Math.round(resultsSection.getBoundingClientRect().top + window.scrollY));
+            window.parent.postMessage({ type: 'eco-calc-scroll-to', offsetTop }, '*');
+        }
+
+        postEmbedHeight(true);
+        window.addEventListener('load', () => postEmbedHeight(true));
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'eco-calc-ping') postEmbedHeight(true);
+        });
+
+        if (typeof ResizeObserver !== 'undefined') {
+            let roRaf = 0;
+            new ResizeObserver(() => {
+                if (roRaf) cancelAnimationFrame(roRaf);
+                roRaf = requestAnimationFrame(() => {
+                    roRaf = 0;
+                    postEmbedHeight();
+                });
+            }).observe(calculatorApp);
+        }
+
     </script>
 
-<script type="text/javascript" id="gif-worker">
+<script type="javascript/worker" id="gif-worker">
 // gif.worker.js 0.2.0 - https://github.com/jnordberg/gif.js
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){var NeuQuant=require("./TypedNeuQuant.js");var LZWEncoder=require("./LZWEncoder.js");function ByteArray(){this.page=-1;this.pages=[];this.newPage()}ByteArray.pageSize=4096;ByteArray.charMap={};for(var i=0;i<256;i++)ByteArray.charMap[i]=String.fromCharCode(i);ByteArray.prototype.newPage=function(){this.pages[++this.page]=new Uint8Array(ByteArray.pageSize);this.cursor=0};ByteArray.prototype.getData=function(){var rv="";for(var p=0;p<this.pages.length;p++){for(var i=0;i<ByteArray.pageSize;i++){rv+=ByteArray.charMap[this.pages[p][i]]}}return rv};ByteArray.prototype.writeByte=function(val){if(this.cursor>=ByteArray.pageSize)this.newPage();this.pages[this.page][this.cursor++]=val};ByteArray.prototype.writeUTFBytes=function(string){for(var l=string.length,i=0;i<l;i++)this.writeByte(string.charCodeAt(i))};ByteArray.prototype.writeBytes=function(array,offset,length){for(var l=length||array.length,i=offset||0;i<l;i++)this.writeByte(array[i])};function GIFEncoder(width,height){this.width=~~width;this.height=~~height;this.transparent=null;this.transIndex=0;this.repeat=-1;this.delay=0;this.image=null;this.pixels=null;this.indexedPixels=null;this.colorDepth=null;this.colorTab=null;this.neuQuant=null;this.usedEntry=new Array;this.palSize=7;this.dispose=-1;this.firstFrame=true;this.sample=10;this.dither=false;this.globalPalette=false;this.out=new ByteArray}GIFEncoder.prototype.setDelay=function(milliseconds){this.delay=Math.round(milliseconds/10)};GIFEncoder.prototype.setFrameRate=function(fps){this.delay=Math.round(100/fps)};GIFEncoder.prototype.setDispose=function(disposalCode){if(disposalCode>=0)this.dispose=disposalCode};GIFEncoder.prototype.setRepeat=function(repeat){this.repeat=repeat};GIFEncoder.prototype.setTransparent=function(color){this.transparent=color};GIFEncoder.prototype.addFrame=function(imageData){this.image=imageData;this.colorTab=this.globalPalette&&this.globalPalette.slice?this.globalPalette:null;this.getImagePixels();this.analyzePixels();if(this.globalPalette===true)this.globalPalette=this.colorTab;if(this.firstFrame){this.writeLSD();this.writePalette();if(this.repeat>=0){this.writeNetscapeExt()}}this.writeGraphicCtrlExt();this.writeImageDesc();if(!this.firstFrame&&!this.globalPalette)this.writePalette();this.writePixels();this.firstFrame=false};GIFEncoder.prototype.finish=function(){this.out.writeByte(59)};GIFEncoder.prototype.setQuality=function(quality){if(quality<1)quality=1;this.sample=quality};GIFEncoder.prototype.setDither=function(dither){if(dither===true)dither="FloydSteinberg";this.dither=dither};GIFEncoder.prototype.setGlobalPalette=function(palette){this.globalPalette=palette};GIFEncoder.prototype.getGlobalPalette=function(){return this.globalPalette&&this.globalPalette.slice&&this.globalPalette.slice(0)||this.globalPalette};GIFEncoder.prototype.writeHeader=function(){this.out.writeUTFBytes("GIF89a")};GIFEncoder.prototype.analyzePixels=function(){if(!this.colorTab){this.neuQuant=new NeuQuant(this.pixels,this.sample);this.neuQuant.buildColormap();this.colorTab=this.neuQuant.getColormap()}if(this.dither){this.ditherPixels(this.dither.replace("-serpentine",""),this.dither.match(/-serpentine/)!==null)}else{this.indexPixels()}this.pixels=null;this.colorDepth=8;this.palSize=7;if(this.transparent!==null){this.transIndex=this.findClosest(this.transparent,true)}};GIFEncoder.prototype.indexPixels=function(imgq){var nPix=this.pixels.length/3;this.indexedPixels=new Uint8Array(nPix);var k=0;for(var j=0;j<nPix;j++){var index=this.findClosestRGB(this.pixels[k++]&255,this.pixels[k++]&255,this.pixels[k++]&255);this.usedEntry[index]=true;this.indexedPixels[j]=index}};GIFEncoder.prototype.ditherPixels=function(kernel,serpentine){var kernels={FalseFloydSteinberg:[[3/8,1,0],[3/8,0,1],[2/8,1,1]],FloydSteinberg:[[7/16,1,0],[3/16,-1,1],[5/16,0,1],[1/16,1,1]],Stucki:[[8/42,1,0],[4/42,2,0],[2/42,-2,1],[4/42,-1,1],[8/42,0,1],[4/42,1,1],[2/42,2,1],[1/42,-2,2],[2/42,-1,2],[4/42,0,2],[2/42,1,2],[1/42,2,2]],Atkinson:[[1/8,1,0],[1/8,2,0],[1/8,-1,1],[1/8,0,1],[1/8,1,1],[1/8,0,2]]};if(!kernel||!kernels[kernel]){throw"Unknown dithering kernel: "+kernel}var ds=kernels[kernel];var index=0,height=this.height,width=this.width,data=this.pixels;var direction=serpentine?-1:1;this.indexedPixels=new Uint8Array(this.pixels.length/3);for(var y=0;y<height;y++){if(serpentine)direction=direction*-1;for(var x=direction==1?0:width-1,xend=direction==1?width:0;x!==xend;x+=direction){index=y*width+x;var idx=index*3;var r1=data[idx];var g1=data[idx+1];var b1=data[idx+2];idx=this.findClosestRGB(r1,g1,b1);this.usedEntry[idx]=true;this.indexedPixels[index]=idx;idx*=3;var r2=this.colorTab[idx];var g2=this.colorTab[idx+1];var b2=this.colorTab[idx+2];var er=r1-r2;var eg=g1-g2;var eb=b1-b2;for(var i=direction==1?0:ds.length-1,end=direction==1?ds.length:0;i!==end;i+=direction){var x1=ds[i][1];var y1=ds[i][2];if(x1+x>=0&&x1+x<width&&y1+y>=0&&y1+y<height){var d=ds[i][0];idx=index+x1+y1*width;idx*=3;data[idx]=Math.max(0,Math.min(255,data[idx]+er*d));data[idx+1]=Math.max(0,Math.min(255,data[idx+1]+eg*d));data[idx+2]=Math.max(0,Math.min(255,data[idx+2]+eb*d))}}}}};GIFEncoder.prototype.findClosest=function(c,used){return this.findClosestRGB((c&16711680)>>16,(c&65280)>>8,c&255,used)};GIFEncoder.prototype.findClosestRGB=function(r,g,b,used){if(this.colorTab===null)return-1;if(this.neuQuant&&!used){return this.neuQuant.lookupRGB(r,g,b)}var c=b|g<<8|r<<16;var minpos=0;var dmin=256*256*256;var len=this.colorTab.length;for(var i=0,index=0;i<len;index++){var dr=r-(this.colorTab[i++]&255);var dg=g-(this.colorTab[i++]&255);var db=b-(this.colorTab[i++]&255);var d=dr*dr+dg*dg+db*db;if((!used||this.usedEntry[index])&&d<dmin){dmin=d;minpos=index}}return minpos};GIFEncoder.prototype.getImagePixels=function(){var w=this.width;var h=this.height;this.pixels=new Uint8Array(w*h*3);var data=this.image;var srcPos=0;var count=0;for(var i=0;i<h;i++){for(var j=0;j<w;j++){this.pixels[count++]=data[srcPos++];this.pixels[count++]=data[srcPos++];this.pixels[count++]=data[srcPos++];srcPos++}}};GIFEncoder.prototype.writeGraphicCtrlExt=function(){this.out.writeByte(33);this.out.writeByte(249);this.out.writeByte(4);var transp,disp;if(this.transparent===null){transp=0;disp=0}else{transp=1;disp=2}if(this.dispose>=0){disp=dispose&7}disp<<=2;this.out.writeByte(0|disp|0|transp);this.writeShort(this.delay);this.out.writeByte(this.transIndex);this.out.writeByte(0)};GIFEncoder.prototype.writeImageDesc=function(){this.out.writeByte(44);this.writeShort(0);this.writeShort(0);this.writeShort(this.width);this.writeShort(this.height);if(this.firstFrame||this.globalPalette){this.out.writeByte(0)}else{this.out.writeByte(128|0|0|0|this.palSize)}};GIFEncoder.prototype.writeLSD=function(){this.writeShort(this.width);this.writeShort(this.height);this.out.writeByte(128|112|0|this.palSize);this.out.writeByte(0);this.out.writeByte(0)};GIFEncoder.prototype.writeNetscapeExt=function(){this.out.writeByte(33);this.out.writeByte(255);this.out.writeByte(11);this.out.writeUTFBytes("NETSCAPE2.0");this.out.writeByte(3);this.out.writeByte(1);this.writeShort(this.repeat);this.out.writeByte(0)};GIFEncoder.prototype.writePalette=function(){this.out.writeBytes(this.colorTab);var n=3*256-this.colorTab.length;for(var i=0;i<n;i++)this.out.writeByte(0)};GIFEncoder.prototype.writeShort=function(pValue){this.out.writeByte(pValue&255);this.out.writeByte(pValue>>8&255)};GIFEncoder.prototype.writePixels=function(){var enc=new LZWEncoder(this.width,this.height,this.indexedPixels,this.colorDepth);enc.encode(this.out)};GIFEncoder.prototype.stream=function(){return this.out};module.exports=GIFEncoder},{"./LZWEncoder.js":2,"./TypedNeuQuant.js":3}],2:[function(require,module,exports){var EOF=-1;var BITS=12;var HSIZE=5003;var masks=[0,1,3,7,15,31,63,127,255,511,1023,2047,4095,8191,16383,32767,65535];function LZWEncoder(width,height,pixels,colorDepth){var initCodeSize=Math.max(2,colorDepth);var accum=new Uint8Array(256);var htab=new Int32Array(HSIZE);var codetab=new Int32Array(HSIZE);var cur_accum,cur_bits=0;var a_count;var free_ent=0;var maxcode;var clear_flg=false;var g_init_bits,ClearCode,EOFCode;function char_out(c,outs){accum[a_count++]=c;if(a_count>=254)flush_char(outs)}function cl_block(outs){cl_hash(HSIZE);free_ent=ClearCode+2;clear_flg=true;output(ClearCode,outs)}function cl_hash(hsize){for(var i=0;i<hsize;++i)htab[i]=-1}function compress(init_bits,outs){var fcode,c,i,ent,disp,hsize_reg,hshift;g_init_bits=init_bits;clear_flg=false;n_bits=g_init_bits;maxcode=MAXCODE(n_bits);ClearCode=1<<init_bits-1;EOFCode=ClearCode+1;free_ent=ClearCode+2;a_count=0;ent=nextPixel();hshift=0;for(fcode=HSIZE;fcode<65536;fcode*=2)++hshift;hshift=8-hshift;hsize_reg=HSIZE;cl_hash(hsize_reg);output(ClearCode,outs);outer_loop:while((c=nextPixel())!=EOF){fcode=(c<<BITS)+ent;i=c<<hshift^ent;if(htab[i]===fcode){ent=codetab[i];continue}else if(htab[i]>=0){disp=hsize_reg-i;if(i===0)disp=1;do{if((i-=disp)<0)i+=hsize_reg;if(htab[i]===fcode){ent=codetab[i];continue outer_loop}}while(htab[i]>=0)}output(ent,outs);ent=c;if(free_ent<1<<BITS){codetab[i]=free_ent++;htab[i]=fcode}else{cl_block(outs)}}output(ent,outs);output(EOFCode,outs)}function encode(outs){outs.writeByte(initCodeSize);remaining=width*height;curPixel=0;compress(initCodeSize+1,outs);outs.writeByte(0)}function flush_char(outs){if(a_count>0){outs.writeByte(a_count);outs.writeBytes(accum,0,a_count);a_count=0}}function MAXCODE(n_bits){return(1<<n_bits)-1}function nextPixel(){if(remaining===0)return EOF;--remaining;var pix=pixels[curPixel++];return pix&255}function output(code,outs){cur_accum&=masks[cur_bits];if(cur_bits>0)cur_accum|=code<<cur_bits;else cur_accum=code;cur_bits+=n_bits;while(cur_bits>=8){char_out(cur_accum&255,outs);cur_accum>>=8;cur_bits-=8}if(free_ent>maxcode||clear_flg){if(clear_flg){maxcode=MAXCODE(n_bits=g_init_bits);clear_flg=false}else{++n_bits;if(n_bits==BITS)maxcode=1<<BITS;else maxcode=MAXCODE(n_bits)}}if(code==EOFCode){while(cur_bits>0){char_out(cur_accum&255,outs);cur_accum>>=8;cur_bits-=8}flush_char(outs)}}this.encode=encode}module.exports=LZWEncoder},{}],3:[function(require,module,exports){var ncycles=100;var netsize=256;var maxnetpos=netsize-1;var netbiasshift=4;var intbiasshift=16;var intbias=1<<intbiasshift;var gammashift=10;var gamma=1<<gammashift;var betashift=10;var beta=intbias>>betashift;var betagamma=intbias<<gammashift-betashift;var initrad=netsize>>3;var radiusbiasshift=6;var radiusbias=1<<radiusbiasshift;var initradius=initrad*radiusbias;var radiusdec=30;var alphabiasshift=10;var initalpha=1<<alphabiasshift;var alphadec;var radbiasshift=8;var radbias=1<<radbiasshift;var alpharadbshift=alphabiasshift+radbiasshift;var alpharadbias=1<<alpharadbshift;var prime1=499;var prime2=491;var prime3=487;var prime4=503;var minpicturebytes=3*prime4;function NeuQuant(pixels,samplefac){var network;var netindex;var bias;var freq;var radpower;function init(){network=[];netindex=new Int32Array(256);bias=new Int32Array(netsize);freq=new Int32Array(netsize);radpower=new Int32Array(netsize>>3);var i,v;for(i=0;i<netsize;i++){v=(i<<netbiasshift+8)/netsize;network[i]=new Float64Array([v,v,v,0]);freq[i]=intbias/netsize;bias[i]=0}}function unbiasnet(){for(var i=0;i<netsize;i++){network[i][0]>>=netbiasshift;network[i][1]>>=netbiasshift;network[i][2]>>=netbiasshift;network[i][3]=i}}function altersingle(alpha,i,b,g,r){network[i][0]-=alpha*(network[i][0]-b)/initalpha;network[i][1]-=alpha*(network[i][1]-g)/initalpha;network[i][2]-=alpha*(network[i][2]-r)/initalpha}function alterneigh(radius,i,b,g,r){var lo=Math.abs(i-radius);var hi=Math.min(i+radius,netsize);var j=i+1;var k=i-1;var m=1;var p,a;while(j<hi||k>lo){a=radpower[m++];if(j<hi){p=network[j++];p[0]-=a*(p[0]-b)/alpharadbias;p[1]-=a*(p[1]-g)/alpharadbias;p[2]-=a*(p[2]-r)/alpharadbias}if(k>lo){p=network[k--];p[0]-=a*(p[0]-b)/alpharadbias;p[1]-=a*(p[1]-g)/alpharadbias;p[2]-=a*(p[2]-r)/alpharadbias}}}function contest(b,g,r){var bestd=~(1<<31);var bestbiasd=bestd;var bestpos=-1;var bestbiaspos=bestpos;var i,n,dist,biasdist,betafreq;for(i=0;i<netsize;i++){n=network[i];dist=Math.abs(n[0]-b)+Math.abs(n[1]-g)+Math.abs(n[2]-r);if(dist<bestd){bestd=dist;bestpos=i}biasdist=dist-(bias[i]>>intbiasshift-netbiasshift);if(biasdist<bestbiasd){bestbiasd=biasdist;bestbiaspos=i}betafreq=freq[i]>>betashift;freq[i]-=betafreq;bias[i]+=betafreq<<gammashift}freq[bestpos]+=beta;bias[bestpos]-=betagamma;return bestbiaspos}function inxbuild(){var i,j,p,q,smallpos,smallval,previouscol=0,startpos=0;for(i=0;i<netsize;i++){p=network[i];smallpos=i;smallval=p[1];for(j=i+1;j<netsize;j++){q=network[j];if(q[1]<smallval){smallpos=j;smallval=q[1]}}q=network[smallpos];if(i!=smallpos){j=q[0];q[0]=p[0];p[0]=j;j=q[1];q[1]=p[1];p[1]=j;j=q[2];q[2]=p[2];p[2]=j;j=q[3];q[3]=p[3];p[3]=j}if(smallval!=previouscol){netindex[previouscol]=startpos+i>>1;for(j=previouscol+1;j<smallval;j++)netindex[j]=i;previouscol=smallval;startpos=i}}netindex[previouscol]=startpos+maxnetpos>>1;for(j=previouscol+1;j<256;j++)netindex[j]=maxnetpos}function inxsearch(b,g,r){var a,p,dist;var bestd=1e3;var best=-1;var i=netindex[g];var j=i-1;while(i<netsize||j>=0){if(i<netsize){p=network[i];dist=p[1]-g;if(dist>=bestd)i=netsize;else{i++;if(dist<0)dist=-dist;a=p[0]-b;if(a<0)a=-a;dist+=a;if(dist<bestd){a=p[2]-r;if(a<0)a=-a;dist+=a;if(dist<bestd){bestd=dist;best=p[3]}}}}if(j>=0){p=network[j];dist=g-p[1];if(dist>=bestd)j=-1;else{j--;if(dist<0)dist=-dist;a=p[0]-b;if(a<0)a=-a;dist+=a;if(dist<bestd){a=p[2]-r;if(a<0)a=-a;dist+=a;if(dist<bestd){bestd=dist;best=p[3]}}}}}return best}function learn(){var i;var lengthcount=pixels.length;var alphadec=30+(samplefac-1)/3;var samplepixels=lengthcount/(3*samplefac);var delta=~~(samplepixels/ncycles);var alpha=initalpha;var radius=initradius;var rad=radius>>radiusbiasshift;if(rad<=1)rad=0;for(i=0;i<rad;i++)radpower[i]=alpha*((rad*rad-i*i)*radbias/(rad*rad));var step;if(lengthcount<minpicturebytes){samplefac=1;step=3}else if(lengthcount%prime1!==0){step=3*prime1}else if(lengthcount%prime2!==0){step=3*prime2}else if(lengthcount%prime3!==0){step=3*prime3}else{step=3*prime4}var b,g,r,j;var pix=0;i=0;while(i<samplepixels){b=(pixels[pix]&255)<<netbiasshift;g=(pixels[pix+1]&255)<<netbiasshift;r=(pixels[pix+2]&255)<<netbiasshift;j=contest(b,g,r);altersingle(alpha,j,b,g,r);if(rad!==0)alterneigh(rad,j,b,g,r);pix+=step;if(pix>=lengthcount)pix-=lengthcount;i++;if(delta===0)delta=1;if(i%delta===0){alpha-=alpha/alphadec;radius-=radius/radiusdec;rad=radius>>radiusbiasshift;if(rad<=1)rad=0;for(j=0;j<rad;j++)radpower[j]=alpha*((rad*rad-j*j)*radbias/(rad*rad))}}}function buildColormap(){init();learn();unbiasnet();inxbuild()}this.buildColormap=buildColormap;function getColormap(){var map=[];var index=[];for(var i=0;i<netsize;i++)index[network[i][3]]=i;var k=0;for(var l=0;l<netsize;l++){var j=index[l];map[k++]=network[j][0];map[k++]=network[j][1];map[k++]=network[j][2]}return map}this.getColormap=getColormap;this.lookupRGB=inxsearch}module.exports=NeuQuant},{}],4:[function(require,module,exports){var GIFEncoder,renderFrame;GIFEncoder=require("./GIFEncoder.js");renderFrame=function(frame){var encoder,page,stream,transfer;encoder=new GIFEncoder(frame.width,frame.height);if(frame.index===0){encoder.writeHeader()}else{encoder.firstFrame=false}encoder.setTransparent(frame.transparent);encoder.setRepeat(frame.repeat);encoder.setDelay(frame.delay);encoder.setQuality(frame.quality);encoder.setDither(frame.dither);encoder.setGlobalPalette(frame.globalPalette);encoder.addFrame(frame.data);if(frame.last){encoder.finish()}if(frame.globalPalette===true){frame.globalPalette=encoder.getGlobalPalette()}stream=encoder.stream();frame.data=stream.pages;frame.cursor=stream.cursor;frame.pageSize=stream.constructor.pageSize;if(frame.canTransfer){transfer=function(){var i,len,ref,results;ref=frame.data;results=[];for(i=0,len=ref.length;i<len;i++){page=ref[i];results.push(page.buffer)}return results}();return self.postMessage(frame,transfer)}else{return self.postMessage(frame)}};self.onmessage=function(event){return renderFrame(event.data)}},{"./GIFEncoder.js":1}]},{},[4]);
-//# sourceMappingURL=gif.worker.js.map
-
 </script>
 </body>
 
